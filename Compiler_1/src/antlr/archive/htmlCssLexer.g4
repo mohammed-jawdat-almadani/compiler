@@ -17,6 +17,7 @@ ATTR_VALUE: '"' .*? '"' | '\'' .*? '\'';
 // Attribute pair: name=optional value
 fragment ATTR_PAIR: ATTR_NAME (WS? '=' WS? ATTR_VALUE)?;
 
+EQ: '=';
 /*
  * CSS
  */
@@ -25,7 +26,7 @@ CSS_LKB: '{';
 CSS_RKB: '}';
 CSS_COL: ':';
 CSS_SCOL: ';';
-CSS_VALUE: ~[{};]+;
+//CSS_VALUE: ~[{};]+;
 
 /*
  * Comments
