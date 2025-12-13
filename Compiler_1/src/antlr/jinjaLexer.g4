@@ -1,84 +1,94 @@
 lexer grammar jinjaLexer;
 
-//TEXT: ~({%|{{|{)+ -> channel(HIDDEN);
+/*
+ * Text
+ */
+TEXT
+    : ~'{' + ;
+
+/*
+ * Comment
+ */
+COMMENT
+    : '{#' .*? '#}' -> skip;
+
+/*
+ * White Space
+ */
+WS
+    : [ \t\r\n]+ -> skip;
+
+/*
+ * Start Mode <EXPR_MODE>
+ */
+BLOCK_START
+    : '{%' -> pushMode(EXPR_MODE);
+
+VAR_START
+    : '{{' -> pushMode(EXPR_MODE);
+
+/*
+ * EXPR_MODE
+ */
+mode EXPR_MODE;
+WS_EXPR
+    : [ \t\r\n]+ -> skip;
+
+/*
+ * End Mode <EXPR_MODE>
+ */
+BLOCK_END
+    : '%}' -> popMode;
+
+VAR_END
+    : '}}' -> popMode;
 
 /*
  * Keywords
  */
-IF          : 'if';
-ELIF        : 'elif';
-ELSE        : 'else';
-ENDIF       : 'endif';
-WHILE       : 'while';
-END_WHILE   : 'endwhile';
-SET   : 'set';
-TRUE        : 'True';
-FALSE       : 'False';
+IF        : 'if';
+ELIF      : 'elif';
+ELSE      : 'else';
+ENDIF     : 'endif';
+FOR       : 'for';
+IN        : 'in';
+END_FOR    : 'endfor';
+SET       : 'set';
+WHILE     : 'while';
+END_WHILE  : 'endwhile';
 
 /*
  * Operators
  */
-// Arithmatic
+ADD    : '+';
+SUB    : '-';
+MUL    : '*';
+DIV    : '/';
 EQUALS : '=';
-ADD : '+';
-SUB : '-';
-MUL : '*';
-DIV : '/';
-
-// Logical
-EQ  : '==';
-NEQ : '!=';
-
-// Comparsion
-GT   : '>';
-LT   : '<';
-GTEQ : '>=';
-LTEQ : '<=';
-
-// Symbols
-LP: '(';
-RP: ')';
-BLOCK_START: '{%';
-BLOCK_END: '%}';
-VAR_START: '{{';
-VAR_END: '}}';
+EQ     : '==';
+NEQ    : '!=';
+GT     : '>';
+LT     : '<';
+GTEQ   : '>=';
+LTEQ   : '<=';
 
 /*
- * Identifiers
+ * Symbols
  */
-ID : [a-z][a-zA-Z0-9_]* ;
+LP  : '(';
+RP  : ')';
+DOT : '.';
 
 /*
- * Numbers
+ * Literals
  */
-DOUBLE: '-'? NUM '.' NUM EXP?;
-
-INT: '-'? NUM EXP?;
-
-fragment NUM: '0' | [1-9] DIGITS*;
-fragment DIGITS: [0-9];
-fragment EXP: [Ee] [+\-]? INT;
-/*
- * String
- */
-STRING : '\'' (ESC | .)*? '\'' ;
-fragment ESC: '\\' [btnfr"'\\] | UNICODE;
-fragment UNICODE: '\\u' HEX HEX HEX HEX;
-fragment HEX: [0-9a-fA-F];
+ID     : [a-zA-Z_] [a-zA-Z0-9_]*;
+INT    : '-'? [0-9]+ ([Ee] [+\-]? [0-9]+)?;
+DOUBLE : '-'? [0-9]+ '.' [0-9]+ ([Ee] [+\-]? [0-9]+)?;
+STRING : '\'' (ESC | ~['\\])* '\'' | '"' (ESC | ~["\\])* '"';
+BOOL   : 'true' | 'false';
 
 /*
- * Bool
+ * helper
  */
-BOOL : TRUE | FALSE;
-
-/*
- * White spaces
- */
-WS : [ \n\r\t]+ -> skip;
-NEWLINE : [\r\n]+;
-
-/*
- * Comments
- */
-COMMENT : '{#' .*? '#}' NEWLINE -> skip;
-
+fragment ESC : '\\' [btnfr"'\\];
