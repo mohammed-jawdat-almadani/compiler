@@ -1,0 +1,23 @@
+package ast.html;
+
+import ast.Node;
+import ast.NodeVisitor;
+
+public class Script extends Node {
+    public String content;
+
+    public Script(int line, int column, String content) {
+        super(line, column);
+        this.content = content;
+    }
+
+    @Override
+    public String toString() {
+        return "Script(content=\"" + content + "\")";
+    }
+
+    @Override
+    public <T> T accept(NodeVisitor<T> visitor) {
+        return visitor.visitScript(this);
+    }
+}

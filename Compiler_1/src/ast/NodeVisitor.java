@@ -1,31 +1,36 @@
 package ast;
 
+import ast.html.*;
+import ast.html_tag.*;
+import ast.jinja.*;
+
 public interface NodeVisitor<T> {
-    // HTML
-    T visitHtmlNode(HtmlNode node);
-    T visitHtmlTextNode(HtmlTextNode node);
-    T visitHtmlDocumentNode(HtmlDocumentNode node);
-
-    // CSS
-    T visitCssNode(CssNode node);
-    T visitDeclarationNode(DeclarationNode node);
-
-    // Jinja2
-    T visitJinjaNode(JinjaNode node);
-    T visitJinjaExpressionNode(JinjaExpressionNode node);
-    T visitJinjaBooleanExpressionNode(JinjaBooleanExpressionNode node);
-    T visitJinjaPrintNode(JinjaPrintNode node);
-    T visitJinjaAssignmentNode(JinjaAssignmentNode node);
-    T visitJinjaIfNode(JinjaIfNode node);
-    T visitJinjaElifNode(JinjaElifNode node);
-    T visitJinjaElseNode(JinjaElseNode node);
-    T visitJinjaWhileNode(JinjaWhileNode node);
-    T visitJinjaCommentNode(JinjaCommentNode node);
-    T visitJinjaForNode(JinjaForNode node);
-    T visitJinjaTextNode(JinjaTextNode node);
-
     default T visitGeneric(Node node) { return null; }
     default T visit(Node node) { return node.accept(this); }
 
+    // HTML Nodes
+    T visitHtmlDocument(HtmlDocument node);
+    T visitHtmlElement(HtmlElement node);
+    T visitHtmlContent(HtmlContent node);
+    T visitHtmlAttribute(HtmlAttribute node);
+    T visitHtmlChardata(HtmlChardata node);
+    T visitHtmlComment(HtmlComment node);
+    T visitScript(Script node);
+    T visitStyle(Style node);
 
+    // Jinja Nodes
+    T visitJinjaExpression(JinjaExpression node);
+    T visitAssignmentStatement(AssignmentStatement node);
+    T visitIfStatement(IfStatement node);
+    T visitElifStatement(ElifStatement node);
+    T visitElseStatement(ElseStatement node);
+    T visitWhileStatement(WhileStatement node);
+    T visitForStatement(ForStatement node);
+
+    // Tag-level Jinja
+    T visitTagIfBlock(TagIfBlock node);
+    T visitTagElifBlock(TagElifBlock node);
+    T visitTagElseBlock(TagElseBlock node);
+    T visitTagForBlock(TagForBlock node);
+    T visitTagWhileBlock(TagWhileBlock node);
 }
