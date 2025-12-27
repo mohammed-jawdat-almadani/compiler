@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ANTLRGenerationPreferences">
+    <option name="perGrammarGenerationSettings">
+      <list>
+        <PerGrammarGenerationSettings>
+          <option name="fileName" value="$PROJECT_DIR$/Compiler_1/src/antlr/cssLexer.g4" />
+          <option name="autoGen" value="true" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
+          <option name="libDir" value="" />
+          <option name="encoding" value="" />
+          <option name="pkg" value="" />
+          <option name="language" value="" />
+          <option name="generateVisitor" value="true" />
+        </PerGrammarGenerationSettings>
+        <PerGrammarGenerationSettings>
+          <option name="fileName" value="$PROJECT_DIR$/Compiler_1/src/antlr/cssParser.g4" />
+          <option name="autoGen" value="true" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
+          <option name="libDir" value="" />
+          <option name="encoding" value="" />
+          <option name="pkg" value="" />
+          <option name="language" value="" />
+          <option name="generateVisitor" value="true" />
+        </PerGrammarGenerationSettings>
+        <PerGrammarGenerationSettings>
+          <option name="fileName" value="$PROJECT_DIR$/Compiler_1/src/antlr/htmlLexer.g4" />
+          <option name="autoGen" value="true" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
+          <option name="libDir" value="" />
+          <option name="encoding" value="" />
+          <option name="pkg" value="" />
+          <option name="language" value="" />
+          <option name="generateVisitor" value="true" />
+        </PerGrammarGenerationSettings>
+        <PerGrammarGenerationSettings>
+          <option name="fileName" value="$PROJECT_DIR$/Compiler_1/src/antlr/htmlParser.g4" />
+          <option name="autoGen" value="true" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
+          <option name="libDir" value="" />
+          <option name="encoding" value="" />
+          <option name="pkg" value="" />
+          <option name="language" value="" />
+          <option name="generateVisitor" value="true" />
+        </PerGrammarGenerationSettings>
+        <PerGrammarGenerationSettings>
+          <option name="fileName" value="$PROJECT_DIR$/Compiler_1/src/antlr/jinjaLexer.g4" />
+          <option name="autoGen" value="true" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
+          <option name="libDir" value="" />
+          <option name="encoding" value="" />
+          <option name="pkg" value="" />
+          <option name="language" value="" />
+          <option name="generateVisitor" value="true" />
+        </PerGrammarGenerationSettings>
+        <PerGrammarGenerationSettings>
+          <option name="fileName" value="$PROJECT_DIR$/Compiler_1/src/antlr/jinjaParser.g4" />
+          <option name="autoGen" value="true" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
+          <option name="libDir" value="" />
+          <option name="encoding" value="" />
+          <option name="pkg" value="" />
+          <option name="language" value="" />
+          <option name="generateVisitor" value="true" />
+        </PerGrammarGenerationSettings>
+        <PerGrammarGenerationSettings>
+          <option name="fileName" value="$PROJECT_DIR$/Compiler_1/src/antlr/pythonLexer.g4" />
+          <option name="autoGen" value="true" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
+          <option name="libDir" value="" />
+          <option name="encoding" value="" />
+          <option name="pkg" value="" />
+          <option name="language" value="" />
+          <option name="generateVisitor" value="true" />
+        </PerGrammarGenerationSettings>
+        <PerGrammarGenerationSettings>
+          <option name="fileName" value="$PROJECT_DIR$/Compiler_1/src/antlr/pythonParser.g4" />
+          <option name="autoGen" value="true" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
+          <option name="libDir" value="" />
+          <option name="encoding" value="" />
+          <option name="pkg" value="" />
+          <option name="language" value="" />
+          <option name="generateVisitor" value="true" />
+        </PerGrammarGenerationSettings>
+      </list>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_25" default="true" project-jdk-name="25" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
+</project>
