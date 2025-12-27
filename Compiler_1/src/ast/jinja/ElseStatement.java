@@ -4,6 +4,7 @@ import ast.Node;
 import ast.NodeVisitor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ElseStatement extends Node {
     public List<Node> body;
@@ -15,7 +16,7 @@ public class ElseStatement extends Node {
 
     @Override
     public String toString() {
-        return "ElseStatement(body=" + body + ")";
+        return "{% else %}" + body.stream().map(Object::toString).collect(Collectors.joining());
     }
 
     @Override

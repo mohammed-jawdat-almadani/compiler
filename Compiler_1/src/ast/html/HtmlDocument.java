@@ -4,6 +4,7 @@ import ast.Node;
 import ast.NodeVisitor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class HtmlDocument extends Node {
     public List<Node> children;
@@ -14,7 +15,9 @@ public class HtmlDocument extends Node {
     }
 
     public String toString() {
-        return "HtmlDocument(children=" + children + ")";
+        return children.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining());
     }
 
     @Override

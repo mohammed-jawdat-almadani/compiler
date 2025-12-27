@@ -6,10 +6,15 @@ options {
 
 /* =================== Main Html Document =================== */ // This is the empty document
 htmlDocument
-    : scriptletOrSeaWs* (htmlMisc | htmlElement)*
+    : scriptletOrSeaWs* (extends_statement | jinjaComment | htmlMisc | htmlElement)*
     ;
 
-/* =================== Spaces Or ScriptLet =================== */ // As {?pho ?} or Space
+/* =================== Extends Statement =================== */ // As {% extends "test.html" %}
+extends_statement
+    : JINJA_BLOCK_START JINJA_EXTENDS JINJA_STRING JINJA_BLOCK_END
+    ;
+
+/* =================== Spaces Or ScriptLet =================== */ // As {?php ?} or Space
 scriptletOrSeaWs
     : SCRIPTLET
     | SEA_WS
@@ -186,37 +191,8 @@ templateContent
     | jinjaComment
     ;
 
-/* =================== Helper Rules =================== */ // <tag ...useHere...> ... </tag>
+/* =================== Helper Rules =================== */ // <tag ...useHere...> ... </tag> as class="{{ varName }}"
 htmlTagContent
     : htmlAttribute
-    | jinjaExpression
-    | tagJinjaBlock
     | TAG_JINJA_VAR
     ;
-
-tagJinjaBlock
-    : tagIfBlock
-    | tagForBlock
-    | tagWhileBlock
-    ;
-
-tagIfBlock
-    : TAG_JINJA_BLOCK htmlAttribute* tagElifBlock* tagElseBlock? TAG_JINJA_BLOCK
-    ;
-
-tagElifBlock
-    : TAG_JINJA_BLOCK htmlAttribute*
-    ;
-
-tagElseBlock
-    : TAG_JINJA_BLOCK htmlAttribute*
-    ;
-
-tagForBlock
-    : TAG_JINJA_BLOCK htmlAttribute* TAG_JINJA_BLOCK
-    ;
-
-tagWhileBlock
-    : TAG_JINJA_BLOCK htmlAttribute* TAG_JINJA_BLOCK
-    ;
-

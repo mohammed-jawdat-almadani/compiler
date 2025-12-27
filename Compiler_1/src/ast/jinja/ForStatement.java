@@ -4,6 +4,7 @@ import ast.Node;
 import ast.NodeVisitor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ForStatement extends Node {
     public List<String> targets;
@@ -19,7 +20,10 @@ public class ForStatement extends Node {
 
     @Override
     public String toString() {
-        return "ForStatement(targets=" + targets + ", iterable=" + iterable + ", body=" + body + ")";
+        String targetStr = String.join(", ", targets);
+        return "{% for " + targetStr + " in " + iterable.expression + " %}" +
+                body.stream().map(Object::toString).collect(Collectors.joining()) +
+                "{% endfor %}";
     }
 
     @Override

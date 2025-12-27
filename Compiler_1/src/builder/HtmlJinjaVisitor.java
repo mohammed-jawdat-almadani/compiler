@@ -1,21 +1,19 @@
 package builder;
 
-import antlr.HtmlJinjaParserBaseVisitor;
+import antlr.*;
 import ast.*;
 import ast.html.*;
-import ast.html_tag.*;
 import ast.jinja.*;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
 import java.util.ArrayList;
 import java.util.List;
-import antlr.HtmlJinjaParser.*;
 
 public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
     /* ---------------- HTML Document ---------------- */
     @Override
-    public Node visitHtmlDocument(HtmlDocumentContext ctx) {
+    public Node visitHtmlDocument(HtmlJinjaParser.HtmlDocumentContext ctx) {
         List<Node> children = new ArrayList<>();
         for (var c : ctx.children) {
             Node n = visit(c);
@@ -26,8 +24,19 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
     /* ---------------- HTML Element ---------------- */
     @Override
-    public Node visitHtmlElement(HtmlElementContext ctx) {
-        if (ctx.jinjaExpression() != null) return visit(ctx.jinjaExpression());
+    public Node visitHtmlElement(HtmlJinjaParser.HtmlElementContext ctx) {
+        if (ctx.jinjaExpression() != null) {
+            String raw = ctx.getText();        // {{name}}
+            String inner = raw
+                    .replaceFirst("^\\{\\{", "")
+                    .replaceFirst("\\}\\}$", "")
+                    .trim();
+            return new JinjaExpression(
+                    ctx.start.getLine(),
+                    ctx.start.getCharPositionInLine(),
+                    inner          // name فقط
+            );
+        }
         if (ctx.jinja_statement() != null) return visit(ctx.jinja_statement());
         if (ctx.SCRIPTLET() != null) return new HtmlChardata(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.SCRIPTLET().getText());
         if (ctx.script() != null) return visit(ctx.script());
@@ -35,11 +44,11 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
         if (ctx.TAG_OPEN() != null) {
             String tagName = ctx.TAG_NAME(0).getText();
-            List<HtmlTagContent> attrs = new ArrayList<>();
-            if (ctx.htmlTagContent() != null) {
-                for (var a : ctx.htmlTagContent()) {
-                    Node n = visit(a);
-                    if (n instanceof HtmlTagContent htc) attrs.add(htc);
+            List<Node> attrs = new ArrayList<>();
+            for (var a : ctx.htmlTagContent()) {
+                Node n = visit(a);
+                if (n != null) {
+                    attrs.add(n);
                 }
             }
             List<Node> children = new ArrayList<>();
@@ -54,7 +63,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
     /* ---------------- HTML Content ---------------- */
     @Override
-    public Node visitHtmlContent(HtmlContentContext ctx) {
+    public Node visitHtmlContent(HtmlJinjaParser.HtmlContentContext ctx) {
         List<Node> nodes = new ArrayList<>();
         for (var c : ctx.templateContent()) {
             Node n = visit(c);
@@ -64,44 +73,105 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitHtmlChardata(HtmlChardataContext ctx) {
+    public Node visitHtmlChardata(HtmlJinjaParser.HtmlChardataContext ctx) {
         if (ctx.HTML_TEXT() != null) return new HtmlChardata(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.HTML_TEXT().getText());
         if (ctx.SEA_WS() != null) return new HtmlChardata(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.SEA_WS().getText());
         return null;
     }
 
     @Override
-    public Node visitHtmlComment(HtmlCommentContext ctx) {
+    public Node visitHtmlComment(HtmlJinjaParser.HtmlCommentContext ctx) {
         return new HtmlComment(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.HTML_COMMENT().getText());
     }
 
     @Override
-    public Node visitScript(ScriptContext ctx) {
+    public Node visitScript(HtmlJinjaParser.ScriptContext ctx) {
         return new Script(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.SCRIPT_BODY().getText());
     }
 
     @Override
-    public Node visitStyle(StyleContext ctx) {
-        return new Style(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.STYLE_BODY().getText());
+    public Node visitStyle(HtmlJinjaParser.StyleContext ctx) {
+
+        String cssText = ctx.STYLE_BODY().getText();
+        if (cssText.trim().endsWith("</style>")) {
+            cssText = cssText.substring(0, cssText.lastIndexOf("</style>")).trim();
+        }
+
+        CssVisitor cssVisitor = new CssVisitor();
+        Node cssNode;
+        try {
+            antlr.cssParser parser = new antlr.cssParser(
+                    new org.antlr.v4.runtime.CommonTokenStream(
+                            new antlr.cssLexer(
+                                    org.antlr.v4.runtime.CharStreams.fromString(cssText)
+                            )
+                    )
+            );
+            cssNode = cssVisitor.visitStylesheet(parser.stylesheet());
+        } catch (Exception e) {
+            cssNode = new HtmlChardata(ctx.start.getLine(), ctx.start.getCharPositionInLine(), cssText);
+        }
+        String test = "<style>\n" + cssNode.toString() + "\n</style>";
+        return new HtmlChardata(ctx.start.getLine(), ctx.start.getCharPositionInLine(), test);
     }
 
     @Override
-    public Node visitHtmlAttribute(HtmlAttributeContext ctx) {
+    public Node visitHtmlTagContent(HtmlJinjaParser.HtmlTagContentContext ctx) {
+       return new HtmlTagContent(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.getText());
+    }
+
+    @Override
+    public Node visitHtmlAttribute(HtmlJinjaParser.HtmlAttributeContext ctx) {
         String name = ctx.TAG_NAME().getText();
         Object value = null;
-        if (ctx.ATTVALUE_VALUE() != null) value = ctx.ATTVALUE_VALUE().getText();
+
+        if (ctx.ATTVALUE_VALUE() != null) {
+            String attrValue = ctx.ATTVALUE_VALUE().getText();
+
+            // إذا كان اسم الـ attribute هو "style"، نرسل القيمة لـ CssVisitor
+            if ("style".equalsIgnoreCase(name)) {
+                CssVisitor cssVisitor = new CssVisitor();
+                try {
+                    antlr.cssParser parser = new antlr.cssParser(
+                            new org.antlr.v4.runtime.CommonTokenStream(
+                                    new antlr.cssLexer(
+                                            org.antlr.v4.runtime.CharStreams.fromString(attrValue)
+                                    )
+                            )
+                    );
+                    // تحليل CSS وإرجاع Node الخاص بالـ CSS
+                    Node cssNode = cssVisitor.visitStylesheet(parser.stylesheet());
+                    value = cssNode; // نخزن AST الخاص بالـ CSS بدلاً من النص
+                } catch (Exception e) {
+                    // إذا حدث خطأ، نترك النص كما هو
+                    value = attrValue;
+                }
+            } else {
+                // لل attributes الأخرى نترك النص كما هو
+                value = attrValue;
+            }
+        }
+
         return new HtmlAttribute(ctx.start.getLine(), ctx.start.getCharPositionInLine(), name, value);
+    }
+
+
+    /* ---------------- Extends Statement ---------------- */
+
+    @Override
+    public Node visitExtends_statement(HtmlJinjaParser.Extends_statementContext ctx) {
+        return new ExtendsStatement(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.JINJA_STRING().getText());
     }
 
     /* ---------------- Jinja Expressions ---------------- */
     @Override
-    public Node visitJinjaExpression(JinjaExpressionContext ctx) {
+    public Node visitJinjaExpression(HtmlJinjaParser.JinjaExpressionContext ctx) {
         return new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.getText());
     }
 
     /* ---------------- Jinja Statements ---------------- */
     @Override
-    public Node visitAssignment_statement(Assignment_statementContext ctx) {
+    public Node visitAssignment_statement(HtmlJinjaParser.Assignment_statementContext ctx) {
         return new AssignmentStatement(
                 ctx.start.getLine(),
                 ctx.start.getCharPositionInLine(),
@@ -111,12 +181,14 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitIf_statement(If_statementContext ctx) {
-        JinjaExpression condition = null;
-        if (ctx.if_fragment().expression() != null) {
-            Node condNode = visit(ctx.if_fragment().expression());
-            if (condNode instanceof JinjaExpression je) condition = je;
-        }
+    public Node visitIf_statement(HtmlJinjaParser.If_statementContext ctx) {
+        // دائماً خذ النص الكامل للشرط
+        String condText = "";
+        if (ctx.if_fragment() != null)
+            condText = ctx.if_fragment().getText().replaceAll("\\{\\%\\s*if\\s*", "")
+                    .replaceAll("\\s*\\%\\}", "").trim();
+
+        JinjaExpression condition = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), condText);
 
         List<Node> body = new ArrayList<>();
         for (var c : ctx.templateContent()) {
@@ -140,12 +212,14 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitElif_statement(Elif_statementContext ctx) {
-        JinjaExpression condition = null;
-        if (ctx.elif_fragment().expression() != null) {
-            Node condNode = visit(ctx.elif_fragment().expression());
-            if (condNode instanceof JinjaExpression je) condition = je;
-        }
+    public Node visitElif_statement(HtmlJinjaParser.Elif_statementContext ctx) {
+        // استخدم النص الكامل من elif_fragment
+        String condText = "";
+        if (ctx.elif_fragment() != null)
+            condText = ctx.elif_fragment().getText().replaceAll("\\{\\%\\s*elif\\s*", "")
+                    .replaceAll("\\s*\\%\\}", "").trim();
+
+        JinjaExpression condition = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), condText);
 
         List<Node> body = new ArrayList<>();
         for (var c : ctx.templateContent()) {
@@ -157,7 +231,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitElse_statement(Else_statementContext ctx) {
+    public Node visitElse_statement(HtmlJinjaParser.Else_statementContext ctx) {
         List<Node> body = new ArrayList<>();
         for (var c : ctx.templateContent()) {
             Node n = visit(c);
@@ -167,12 +241,14 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitWhile_statement(While_statementContext ctx) {
-        JinjaExpression condition = null;
-        if (ctx.while_fragment().expression() != null) {
-            Node condNode = visit(ctx.while_fragment().expression());
-            if (condNode instanceof JinjaExpression je) condition = je;
-        }
+    public Node visitWhile_statement(HtmlJinjaParser.While_statementContext ctx) {
+        // استخدم النص الكامل من while_fragment
+        String condText = "";
+        if (ctx.while_fragment() != null)
+            condText = ctx.while_fragment().getText().replaceAll("\\{\\%\\s*while\\s*", "")
+                    .replaceAll("\\s*\\%\\}", "").trim();
+
+        JinjaExpression condition = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), condText);
 
         List<Node> body = new ArrayList<>();
         for (var c : ctx.templateContent()) {
@@ -184,15 +260,18 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitFor_statement(For_statementContext ctx) {
+    public Node visitFor_statement(HtmlJinjaParser.For_statementContext ctx) {
+        // جمع المتغيرات المستهدفة
         List<String> targets = new ArrayList<>();
         for (TerminalNode id : ctx.for_fragment().for_target().JINJA_ID()) targets.add(id.getText());
 
-        JinjaExpression iterable = null;
-        if (ctx.for_fragment().expression() != null) {
-            Node n = visit(ctx.for_fragment().expression());
-            if (n instanceof JinjaExpression je) iterable = je;
-        }
+        // خذ النص الكامل للتكرار كـ JinjaExpression
+        String iterableText = "";
+        if (ctx.for_fragment() != null)
+            iterableText = ctx.for_fragment().getText().replaceAll("\\{\\%\\s*for\\s*", "")
+                    .replaceAll("\\s*\\%\\}", "").trim();
+
+        JinjaExpression iterable = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), iterableText);
 
         List<Node> body = new ArrayList<>();
         for (var c : ctx.templateContent()) {
@@ -202,94 +281,4 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
         return new ForStatement(ctx.start.getLine(), ctx.start.getCharPositionInLine(), targets, iterable, body);
     }
-
-    /* ---------------- Tag-level Jinja Blocks ---------------- */
-    @Override
-    public Node visitTagIfBlock(TagIfBlockContext ctx) {
-        // استخراج الشرط من النص
-        String blockText = ctx.TAG_JINJA_BLOCK(0).getText();
-        String conditionText = blockText.replaceAll("\\{\\%\\s*if\\s*", "")
-                .replaceAll("\\s*\\%\\}", "")
-                .trim();
-        JinjaExpression condition = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), conditionText);
-
-        // زيارة attributes
-        List<HtmlAttribute> attributes = new ArrayList<>();
-        for (var attrCtx : ctx.htmlAttribute()) {
-            Node n = visit(attrCtx);
-            if (n instanceof HtmlAttribute ha) attributes.add(ha);
-        }
-
-        // زيارة nested elif blocks
-        List<TagElifBlock> elifBlocks = new ArrayList<>();
-        for (var elifCtx : ctx.tagElifBlock()) {
-            Node n = visit(elifCtx);
-            if (n instanceof TagElifBlock te) elifBlocks.add(te);
-        }
-
-        // زيارة else block إذا موجود
-        TagElseBlock elseBlock = null;
-        if (ctx.tagElseBlock() != null) {
-            Node n = visit(ctx.tagElseBlock());
-            if (n instanceof TagElseBlock te) elseBlock = te;
-        }
-
-        return new TagIfBlock(ctx.start.getLine(), ctx.start.getCharPositionInLine(), condition, attributes, elifBlocks, elseBlock);
-    }
-
-    @Override
-    public Node visitTagElifBlock(TagElifBlockContext ctx) {
-        String blockText = ctx.TAG_JINJA_BLOCK().getText();
-        String conditionText = blockText.replaceAll("\\{\\%\\s*elif\\s*", "")
-                .replaceAll("\\s*\\%\\}", "")
-                .trim();
-        JinjaExpression condition = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), conditionText);
-
-        List<HtmlAttribute> attributes = new ArrayList<>();
-        for (var attrCtx : ctx.htmlAttribute()) {
-            Node n = visit(attrCtx);
-            if (n instanceof HtmlAttribute ha) attributes.add(ha);
-        }
-
-        return new TagElifBlock(ctx.start.getLine(), ctx.start.getCharPositionInLine(), condition, attributes);
-    }
-
-    @Override
-    public Node visitTagElseBlock(TagElseBlockContext ctx) {
-        List<HtmlAttribute> attributes = new ArrayList<>();
-        for (var attrCtx : ctx.htmlAttribute()) {
-            Node n = visit(attrCtx);
-            if (n instanceof HtmlAttribute ha) attributes.add(ha);
-        }
-        return new TagElseBlock(ctx.start.getLine(), ctx.start.getCharPositionInLine(), attributes);
-    }
-
-    @Override
-    public Node visitTagForBlock(TagForBlockContext ctx) {
-        String blockText = ctx.TAG_JINJA_BLOCK(0).getText();
-        JinjaExpression iterable = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), blockText);
-
-        List<HtmlAttribute> attributes = new ArrayList<>();
-        for (var attrCtx : ctx.htmlAttribute()) {
-            Node n = visit(attrCtx);
-            if (n instanceof HtmlAttribute ha) attributes.add(ha);
-        }
-
-        return new TagForBlock(ctx.start.getLine(), ctx.start.getCharPositionInLine(), attributes, iterable);
-    }
-
-    @Override
-    public Node visitTagWhileBlock(TagWhileBlockContext ctx) {
-        String blockText = ctx.TAG_JINJA_BLOCK(0).getText();
-        JinjaExpression condition = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), blockText);
-
-        List<HtmlAttribute> attributes = new ArrayList<>();
-        for (var attrCtx : ctx.htmlAttribute()) {
-            Node n = visit(attrCtx);
-            if (n instanceof HtmlAttribute ha) attributes.add(ha);
-        }
-
-        return new TagWhileBlock(ctx.start.getLine(), ctx.start.getCharPositionInLine(), attributes, condition);
-    }
-
 }

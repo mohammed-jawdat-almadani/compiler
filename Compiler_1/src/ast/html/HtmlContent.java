@@ -4,6 +4,7 @@ import ast.Node;
 import ast.NodeVisitor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class HtmlContent extends Node {
     public List<Node> nodes;
@@ -13,8 +14,12 @@ public class HtmlContent extends Node {
         this.nodes = nodes;
     }
 
+    @Override
     public String toString() {
-        return "HtmlContent(nodes=" + nodes + ")";
+        if (nodes == null) return "";
+        return nodes.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining());
     }
 
     @Override

@@ -1,4 +1,4 @@
-// Generated from D:/Compiler_1/Compiler - Copy/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
+// Generated from D:/Compiler_1/Compiler/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
 package antlr;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -17,6 +17,16 @@ public interface HtmlJinjaParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitHtmlDocument(HtmlJinjaParser.HtmlDocumentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link HtmlJinjaParser#extends_statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterExtends_statement(HtmlJinjaParser.Extends_statementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link HtmlJinjaParser#extends_statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitExtends_statement(HtmlJinjaParser.Extends_statementContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link HtmlJinjaParser#scriptletOrSeaWs}.
 	 * @param ctx the parse tree
@@ -439,64 +449,4 @@ public interface HtmlJinjaParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitHtmlTagContent(HtmlJinjaParser.HtmlTagContentContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link HtmlJinjaParser#tagJinjaBlock}.
-	 * @param ctx the parse tree
-	 */
-	void enterTagJinjaBlock(HtmlJinjaParser.TagJinjaBlockContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link HtmlJinjaParser#tagJinjaBlock}.
-	 * @param ctx the parse tree
-	 */
-	void exitTagJinjaBlock(HtmlJinjaParser.TagJinjaBlockContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link HtmlJinjaParser#tagIfBlock}.
-	 * @param ctx the parse tree
-	 */
-	void enterTagIfBlock(HtmlJinjaParser.TagIfBlockContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link HtmlJinjaParser#tagIfBlock}.
-	 * @param ctx the parse tree
-	 */
-	void exitTagIfBlock(HtmlJinjaParser.TagIfBlockContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link HtmlJinjaParser#tagElifBlock}.
-	 * @param ctx the parse tree
-	 */
-	void enterTagElifBlock(HtmlJinjaParser.TagElifBlockContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link HtmlJinjaParser#tagElifBlock}.
-	 * @param ctx the parse tree
-	 */
-	void exitTagElifBlock(HtmlJinjaParser.TagElifBlockContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link HtmlJinjaParser#tagElseBlock}.
-	 * @param ctx the parse tree
-	 */
-	void enterTagElseBlock(HtmlJinjaParser.TagElseBlockContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link HtmlJinjaParser#tagElseBlock}.
-	 * @param ctx the parse tree
-	 */
-	void exitTagElseBlock(HtmlJinjaParser.TagElseBlockContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link HtmlJinjaParser#tagForBlock}.
-	 * @param ctx the parse tree
-	 */
-	void enterTagForBlock(HtmlJinjaParser.TagForBlockContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link HtmlJinjaParser#tagForBlock}.
-	 * @param ctx the parse tree
-	 */
-	void exitTagForBlock(HtmlJinjaParser.TagForBlockContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link HtmlJinjaParser#tagWhileBlock}.
-	 * @param ctx the parse tree
-	 */
-	void enterTagWhileBlock(HtmlJinjaParser.TagWhileBlockContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link HtmlJinjaParser#tagWhileBlock}.
-	 * @param ctx the parse tree
-	 */
-	void exitTagWhileBlock(HtmlJinjaParser.TagWhileBlockContext ctx);
 }

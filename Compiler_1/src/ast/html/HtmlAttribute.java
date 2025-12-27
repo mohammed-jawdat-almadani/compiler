@@ -2,6 +2,7 @@ package ast.html;
 
 import ast.Node;
 import ast.NodeVisitor;
+import org.w3c.dom.html.HTMLTableElement;
 
 public class HtmlAttribute extends Node {
     public String name;
@@ -15,7 +16,8 @@ public class HtmlAttribute extends Node {
 
     @Override
     public String toString() {
-        return name + " = " + value + ")";
+        if (value == null) return name;
+        return name + " = " + value.toString();
     }
 
     @Override

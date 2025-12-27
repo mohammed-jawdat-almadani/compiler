@@ -26,7 +26,7 @@
         <PerGrammarGenerationSettings>
           <option name="fileName" value="$PROJECT_DIR$/src/antlr/cssLexer.g4" />
           <option name="autoGen" value="true" />
-          <option name="outputDir" value="D:\Compiler\Compiler_1\src" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
           <option name="libDir" value="" />
           <option name="encoding" value="" />
           <option name="pkg" value="" />
@@ -36,7 +36,7 @@
         <PerGrammarGenerationSettings>
           <option name="fileName" value="$PROJECT_DIR$/src/antlr/cssParser.g4" />
           <option name="autoGen" value="true" />
-          <option name="outputDir" value="D:\Compiler\Compiler_1\src" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
           <option name="libDir" value="" />
           <option name="encoding" value="" />
           <option name="pkg" value="" />
@@ -116,7 +116,7 @@
         <PerGrammarGenerationSettings>
           <option name="fileName" value="$PROJECT_DIR$/src/antlr/HtmlJinjaLexer.g4" />
           <option name="autoGen" value="true" />
-          <option name="outputDir" value="D:\Compiler_1\Compiler - Copy\Compiler_1\src" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
           <option name="libDir" value="" />
           <option name="encoding" value="" />
           <option name="pkg" value="" />
@@ -126,7 +126,7 @@
         <PerGrammarGenerationSettings>
           <option name="fileName" value="$PROJECT_DIR$/src/antlr/HtmlJinjaParser.g4" />
           <option name="autoGen" value="true" />
-          <option name="outputDir" value="D:\Compiler_1\Compiler - Copy\Compiler_1\src" />
+          <option name="outputDir" value="D:\Compiler_1\Compiler\Compiler_1\src" />
           <option name="libDir" value="" />
           <option name="encoding" value="" />
           <option name="pkg" value="" />

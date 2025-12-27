@@ -1,13 +1,13 @@
 lexer grammar HtmlJinjaLexer;
 
 /*
- * Comment
+ * General Comment -> HTML & JINJA
  */
 HTML_COMMENT: '<!--' .*? '-->';
 JINJA_COMMENT: '{#' .*? '#}';
 
 /*
- * Script Let
+ * Script Let As {?php ?}
  */
 SCRIPTLET: '<?' .*? '?>' | '<%' .*? '%>';
 
@@ -17,39 +17,32 @@ SCRIPTLET: '<?' .*? '?>' | '<%' .*? '%>';
 SEA_WS: (' ' | '\t' | '\r'? '\n')+;
 
 /*
- * Tag, Script and Style
+ * Mode -> Tag, Script, Style, (Jinja blocks and Jinja Expression) => JinjaEXPR
  */
 TAG_OPEN: '<' -> pushMode(TAG);
 SCRIPT_OPEN: '<script' .*? '>' -> pushMode(SCRIPT);
 STYLE_OPEN: '<style' .*? '>' -> pushMode(STYLE);
-JINJA_VAR_START   : '{{' -> pushMode(JINJA_EXPR);
-JINJA_BLOCK_START : '{%' -> pushMode(JINJA_EXPR);
-
-
+JINJA_VAR_START   : '{{' -> pushMode(JINJA_BLOCK_EXPR);
+JINJA_BLOCK_START : '{%' -> pushMode(JINJA_BLOCK_EXPR);
 
 /*
- * Text
+ * HTML Text
  */
 HTML_TEXT
     : ( ~[<{] | ('{' ~[#{%]) )+ ;
-
-
 
 /*
  * Tag Mode
  */
 mode TAG;
-TAG_JINJA_BLOCK
-    : '{%' .*? '%}'
-    ;
 TAG_JINJA_VAR
-    : '{{' .*? '}}'
+    : '{{' .*? '}}' // -> for {{ }} in <tagName ...here...>
     ;
 TAG_CLOSE: '>' -> popMode;
 TAG_SLASH_CLOSE: '/>' -> popMode;
 TAG_SLASH: '/';
 
-TAG_EQUALS: '=' -> pushMode(ATTVALUE);
+TAG_EQUALS: '=' -> pushMode(ATTR_VALUE);
 TAG_NAME: TAG_NameStartChar TAG_NameChar*;
 TAG_WHITESPACE: [ \t\r\n] -> channel(HIDDEN);
 
@@ -77,9 +70,9 @@ mode STYLE;
 STYLE_BODY: .*? '</style>' -> popMode;
 
 /*
- * ATTVALUE Mode
+ * ATTR_VALUE Mode
  */
-mode ATTVALUE;
+mode ATTR_VALUE;
 ATTVALUE_VALUE: ' '* ATTRIBUTE -> popMode;
 ATTRIBUTE: DOUBLE_QUOTE_STRING | SINGLE_QUOTE_STRING | ATTCHARS | HEXCHARS | DECCHARS;
 
@@ -91,9 +84,9 @@ fragment DOUBLE_QUOTE_STRING: '"' ~[<"]* '"';
 fragment SINGLE_QUOTE_STRING: '\'' ~[<']* '\'';
 
 /*
- * Jinja Mode
+ * JINJA_BLOCK_EXPR Mode
  */
-mode JINJA_EXPR;
+mode JINJA_BLOCK_EXPR;
 
 JINJA_WS
     : [ \t\r\n]+ -> skip;
@@ -105,7 +98,7 @@ JINJA_VAR_END
     : '}}' -> popMode;
 
 /*
- * Keywords
+ * Jinja Keywords
  */
 JINJA_IF        : 'if';
 JINJA_ELIF      : 'elif';
@@ -117,9 +110,10 @@ JINJA_ENDFOR    : 'endfor';
 JINJA_SET       : 'set';
 JINJA_WHILE     : 'while';
 JINJA_ENDWHILE  : 'endwhile';
+JINJA_EXTENDS   : 'extends';
 
 /*
- * Operators
+ * Jinja Operators
  */
 JINJA_ADD    : '+';
 JINJA_SUB    : '-';
@@ -136,7 +130,7 @@ JINJA_DQ     : '"';
 JINJA_SQ     : '\'';
 
 /*
- * Symbols
+ * Jinja Symbols
  */
 JINJA_LP  : '(';
 JINJA_RP  : ')';
@@ -147,7 +141,7 @@ JINJA_PIP: '|';
 JINJA_COMA: ',';
 
 /*
- * Literals
+ * Jinja Literals
  */
 JINJA_ID     : [a-zA-Z_] [a-zA-Z0-9_]*;
 JINJA_INT    : '-'? [0-9]+;

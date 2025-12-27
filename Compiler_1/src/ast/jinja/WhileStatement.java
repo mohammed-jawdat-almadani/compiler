@@ -4,6 +4,7 @@ import ast.Node;
 import ast.NodeVisitor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class WhileStatement extends Node {
     public JinjaExpression condition;
@@ -17,7 +18,9 @@ public class WhileStatement extends Node {
 
     @Override
     public String toString() {
-        return "WhileStatement(condition=" + condition + ", body=" + body + ")";
+        return "{% while " + condition.expression + " %}" +
+                body.stream().map(Object::toString).collect(Collectors.joining()) +
+                "{% endwhile %}";
     }
 
     @Override

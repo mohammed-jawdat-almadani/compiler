@@ -1,4 +1,4 @@
-// Generated from D:/Compiler_1/Compiler - Copy/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
+// Generated from D:/Compiler_1/Compiler/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
 package antlr;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -16,6 +16,12 @@ public interface HtmlJinjaParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitHtmlDocument(HtmlJinjaParser.HtmlDocumentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link HtmlJinjaParser#extends_statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExtends_statement(HtmlJinjaParser.Extends_statementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link HtmlJinjaParser#scriptletOrSeaWs}.
 	 * @param ctx the parse tree
@@ -267,40 +273,4 @@ public interface HtmlJinjaParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitHtmlTagContent(HtmlJinjaParser.HtmlTagContentContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link HtmlJinjaParser#tagJinjaBlock}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTagJinjaBlock(HtmlJinjaParser.TagJinjaBlockContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link HtmlJinjaParser#tagIfBlock}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTagIfBlock(HtmlJinjaParser.TagIfBlockContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link HtmlJinjaParser#tagElifBlock}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTagElifBlock(HtmlJinjaParser.TagElifBlockContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link HtmlJinjaParser#tagElseBlock}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTagElseBlock(HtmlJinjaParser.TagElseBlockContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link HtmlJinjaParser#tagForBlock}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTagForBlock(HtmlJinjaParser.TagForBlockContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link HtmlJinjaParser#tagWhileBlock}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTagWhileBlock(HtmlJinjaParser.TagWhileBlockContext ctx);
 }

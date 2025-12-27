@@ -13,9 +13,8 @@ public class JinjaExpression extends Node {
 
     @Override
     public String toString() {
-        return "JinjaExpression(expression=\"" + expression + "\")";
+        return "{{ " + expression + " }}";
     }
-
 
     @Override
     public <T> T accept(NodeVisitor<T> visitor) {

@@ -4,13 +4,14 @@ import ast.Node;
 import ast.NodeVisitor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class HtmlElement extends Node {
     public String tagName;
-    public List<HtmlTagContent> attributes;
+    public List<Node> attributes;
     public List<Node> children;
 
-    public HtmlElement(int line, int column, String tagName, List<HtmlTagContent> attributes, List<Node> children) {
+    public HtmlElement(int line, int column, String tagName, List<Node> attributes, List<Node> children) {
         super(line, column);
         this.tagName = tagName;
         this.attributes = attributes;
@@ -19,8 +20,23 @@ public class HtmlElement extends Node {
 
     @Override
     public String toString() {
-        return "<" + tagName + attributes + ", ch:" + children;
+        String attrs = "";
+        if (attributes != null && !attributes.isEmpty()) {
+            attrs = attributes.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.joining(" ", " ", ""));
+        }
+
+        String content = "";
+        if (children != null && !children.isEmpty()) {
+            content = children.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.joining());
+        }
+
+        return "<" + tagName + attrs + ">" + content + "</" + tagName + ">";
     }
+
 
 
     @Override

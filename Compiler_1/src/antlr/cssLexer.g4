@@ -3,49 +3,155 @@ lexer grammar cssLexer;
 channels {
     ERROR
 }
+/*
+ *  Css Comment
+ */
+COMMENT: '/*' ~'*'* '*'+ ( ~[/*] ~'*'* '*'+)* '/';
+
+/*
+ *  Keywords
+ */
+CHARSET: AT C H A R S E T; // -> As @charset
+IMPORT: AT I M P O R T; // -> As @import
+PAGE: AT P A G E; // -> As @page
+MEDIA: AT M E D I A; // -> As @media
+NAMESPACE: AT N A M E S P A C E; // -> As @namespace
+FONT_FACE: AT F O N T DashChar F A C E; // -> As @font-face
+SUPPORTS: AT S U P P O R T S; // -> As @support
+IMPORTANT: '!' ( SPACE | COMMENT)* I M P O R T A N T; // As !important
+MEDIA_ONLY: O N L Y; // -> As only
+NOT: N O T; // -> As not
+AND: A N D; // -> As and
+OR: O R;
+AT_KEYWORD: AT IDENT;
+Keyframes: AT VendorPrefix? K E Y F R A M E S;
+FROM: F R O M;
+TO: T O;
+Viewport: AT V I E W P O R T;
+CounterStyle: AT C O U N T E R DashChar S T Y L E;
+FontFeatureValues: AT F O N T DashChar F E A T U R E DashChar V A L U E S;
+
+/*
+ * Pesudo or Functions
+ */
+PSEUDO_NOT: ':' N O T '(';
+URL_: 'url(';
+Var: 'var(';
+FUNCTION_IDENT: IDENT '(';
+Calc: 'calc(';
+
+/*
+ *  Operators
+ */
+EQUAL        : '=';
+MULTI        : '*';
+DIVIDE       : '/';
+PLUS         : '+';
+MINUS        : '-';
 
 /*
  * Symbols
  */
-OpenBracket  : '[';
-CloseBracket : ']';
-OpenParen    : '(';
-CloseParen   : ')';
-OpenBrace    : '{';
-CloseBrace   : '}';
-SemiColon    : ';';
-Equal        : '=';
-Colon        : ':';
-Dot          : '.';
-Multiply     : '*';
-Divide       : '/';
-Pipe         : '|';
-Underscore   : '_';
+LSBRAC       : '[';
+RSBRAC       : ']';
+LPAREN       : '(';
+RPAREN       : ')';
+LBRACE       : '{';
+RBRACE       : '}';
+SEMI         : ';';
+COLON        : ':';
+DOT          : '.';
+PIPE         : '|';
+UNDER_SCORE  : '_';
+GREATER      : '>';
+COMMA        : ',';
+TILDE        : '~';
+PREFIX_MATCH : '^=';
+SUFFIX_MATCH : '$=';
+SUB_STR_MATCH: '*=';
+ICLUDES      : '~=';
+DASH_MATCH   : '|=';
+HASH         : '#' Name;
 
-fragment At: '@';
+fragment AT: '@';
 fragment Hex: [0-9a-fA-F];
 fragment NewlineOrSpace: '\r\n' | [ \t\r\n\f] |;
 fragment Unicode: '\\' Hex Hex? Hex? Hex? Hex? Hex? NewlineOrSpace;
 fragment Escape: Unicode | '\\' ~[\r\n\f0-9a-fA-F];
 fragment Nmstart: [_a-zA-Z] | Nonascii | Escape;
 fragment Nmchar: [_a-zA-Z0-9\-] | Nonascii | Escape;
-
-/*
- * Comment
- */
-Comment: '/*' .*? '*/';
-
 fragment Name: Nmchar+;
-
-/*
- * Url
- */
-Url: U R L '(' Whitespace ( [!#$%&*-~] | Nonascii | Escape)* Whitespace ')';
-Space: [ \t\r\n\f]+;
-
-fragment Whitespace: Space |;
+URL: U R L '(' Whitespace ( [!#$%&*-~] | Nonascii | Escape)* Whitespace ')';
+SPACE: [ \t\r\n\f]+;
+fragment Whitespace: SPACE |;
 fragment Newline: '\n' | '\r\n' | '\r' | '\f';
 fragment ZeroToFourZeros: '0'? '0'? '0'? '0'?;
+
+fragment DashChar: '-' | '\\' ZeroToFourZeros '2d' NewlineOrSpace;
+
+CDO: '<!--';
+CDC: '-->';
+
+/*
+ * Units
+ */
+fragment FontRelative: NUMBER E M | NUMBER E X | NUMBER C H | NUMBER R E M;
+fragment ViewportRelative: NUMBER V W | NUMBER V H | NUMBER V M I N | NUMBER V M A X;
+fragment AbsLength:
+    NUMBER P X
+    | NUMBER C M
+    | NUMBER M M
+    | NUMBER I N
+    | NUMBER P T
+    | NUMBER P C
+    | NUMBER Q
+;
+fragment Angle: NUMBER D E G | NUMBER R A D | NUMBER G R A D | NUMBER T U R N;
+fragment Time: NUMBER M S | NUMBER S;
+fragment Freq: NUMBER H Z | NUMBER K H Z;
+
+PERCENTAGE: NUMBER '%';
+UNICODE_RANGE:
+    [u|U] '+?' '?'? '?'? '?'? '?'? '?'?
+    | [u|U] '+' Hex '?'? '?'? '?'? '?'? '?'?
+    | [u|U] '+' Hex Hex '?'? '?'? '?'? '?'?
+    | [u|U] '+' Hex Hex Hex '?'? '?'? '?'?
+    | [u|U] '+' Hex Hex Hex Hex '?'? '?'?
+    | [u|U] '+' Hex Hex Hex Hex Hex '?'?
+;
+
+/*
+ * Dimension
+ */
+DIMENSION: Length | Time | Freq | Resolution | Angle;
+UNKNOWN_DIME: NUMBER IDENT;
+fragment Resolution: NUMBER D P I | NUMBER D P C M | NUMBER D P P X;
+fragment Length: AbsLength | FontRelative | ViewportRelative;
+fragment Nonascii: ~[\u0000-\u007f];
+
+
+fragment VendorPrefix: '-' M O Z '-' | '-' W E B K I T '-' | '-' O '-';
+
+DxImageTransform: 'progid:DXImageTransform.Microsoft.' FUNCTION_IDENT;
+/*
+ * Literals
+ */
+NUMBER: [0-9]+ | [0-9]* '.' [0-9]+;
+STRING:
+    '"' (~[\n\r\f\\"] | '\\' Newline | Nonascii | Escape)* '"'
+    | '\'' ( ~[\n\r\f\\'] | '\\' Newline | Nonascii | Escape)* '\''
+;
+Variable: '--' Nmstart Nmchar*;
+IDENT: '-'? Nmstart Nmchar*;
+
+/*
+ * Error
+ */
+UnexpectedCharacter: . -> channel(ERROR);
+
+/*
+ * Helpers
+ */
 fragment A: 'a' | 'A' | '\\' ZeroToFourZeros ('41' | '61') NewlineOrSpace;
 fragment B: 'b' | 'B' | '\\' ZeroToFourZeros ('42' | '62') NewlineOrSpace;
 fragment C: 'c' | 'C' | '\\' ZeroToFourZeros ('43' | '63') NewlineOrSpace;
@@ -71,103 +177,3 @@ fragment W: 'w' | 'W' | '\\' ZeroToFourZeros ('57' | '77') NewlineOrSpace | '\\w
 fragment X: 'x' | 'X' | '\\' ZeroToFourZeros ('58' | '78') NewlineOrSpace | '\\x' | '\\X';
 fragment Y: 'y' | 'Y' | '\\' ZeroToFourZeros ('59' | '79') NewlineOrSpace | '\\y' | '\\Y';
 fragment Z: 'z' | 'Z' | '\\' ZeroToFourZeros ('5a' | '7a') NewlineOrSpace | '\\z' | '\\Z';
-fragment DashChar: '-' | '\\' ZeroToFourZeros '2d' NewlineOrSpace;
-
-Cdo: '<!--';
-Cdc: '-->';
-Includes: '~=';
-DashMatch: '|=';
-Hash: '#' Name;
-
-Import: At I M P O R T;
-Page: At P A G E;
-Media: At M E D I A;
-Namespace: At N A M E S P A C E;
-
-Charset: '@charset ';
-Important: '!' ( Space | Comment)* I M P O R T A N T;
-fragment FontRelative: Number E M | Number E X | Number C H | Number R E M;
-fragment ViewportRelative: Number V W | Number V H | Number V M I N | Number V M A X;
-fragment AbsLength:
-    Number P X
-    | Number C M
-    | Number M M
-    | Number I N
-    | Number P T
-    | Number P C
-    | Number Q
-;
-fragment Angle: Number D E G | Number R A D | Number G R A D | Number T U R N;
-fragment Time: Number M S | Number S;
-fragment Freq: Number H Z | Number K H Z;
-
-Percentage: Number '%';
-
-Url_: 'url(';
-
-UnicodeRange:
-    [u|U] '+?' '?'? '?'? '?'? '?'? '?'?
-    | [u|U] '+' Hex '?'? '?'? '?'? '?'? '?'?
-    | [u|U] '+' Hex Hex '?'? '?'? '?'? '?'?
-    | [u|U] '+' Hex Hex Hex '?'? '?'? '?'?
-    | [u|U] '+' Hex Hex Hex Hex '?'? '?'?
-    | [u|U] '+' Hex Hex Hex Hex Hex '?'?
-;
-
-MediaOnly: O N L Y;
-
-Not: N O T;
-
-And: A N D;
-
-fragment Resolution: Number D P I | Number D P C M | Number D P P X;
-fragment Length: AbsLength | FontRelative | ViewportRelative;
-
-Dimension: Length | Time | Freq | Resolution | Angle;
-UnknownDimension: Number Ident;
-
-fragment Nonascii: ~[\u0000-\u007f];
-
-Plus: '+';
-Minus: '-';
-Greater: '>';
-Comma: ',';
-Tilde: '~';
-
-PseudoNot: ':' N O T '(';
-Number: [0-9]+ | [0-9]* '.' [0-9]+;
-String_:
-    '"' (~[\n\r\f\\"] | '\\' Newline | Nonascii | Escape)* '"'
-    | '\'' ( ~[\n\r\f\\'] | '\\' Newline | Nonascii | Escape)* '\''
-;
-PrefixMatch: '^=';
-SuffixMatch: '$=';
-SubstringMatch: '*=';
-
-FontFace: At F O N T DashChar F A C E;
-Supports: At S U P P O R T S;
-
-Or: O R;
-
-fragment VendorPrefix: '-' M O Z '-' | '-' W E B K I T '-' | '-' O '-';
-Keyframes: At VendorPrefix? K E Y F R A M E S;
-From: F R O M;
-To: T O;
-
-Calc: 'calc(';
-Viewport: At V I E W P O R T;
-CounterStyle: At C O U N T E R DashChar S T Y L E;
-FontFeatureValues: At F O N T DashChar F E A T U R E DashChar V A L U E S;
-DxImageTransform: 'progid:DXImageTransform.Microsoft.' Function_;
-
-AtKeyword: At Ident;
-
-Variable: '--' Nmstart Nmchar*;
-
-Var: 'var(';
-
-Ident: '-'? Nmstart Nmchar*;
-
-Function_: Ident '(';
-
-UnexpectedCharacter: . -> channel(ERROR);

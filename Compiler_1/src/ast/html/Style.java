@@ -13,7 +13,7 @@ public class Style extends Node {
 
     @Override
     public String toString() {
-        return "Style(content=\"" + content + "\")";
+        return "<style>" + content + "</style>";
     }
 
     @Override

@@ -4,6 +4,7 @@ import ast.Node;
 import ast.NodeVisitor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ElifStatement extends Node {
     public JinjaExpression condition;
@@ -17,8 +18,14 @@ public class ElifStatement extends Node {
 
     @Override
     public String toString() {
-        return "ElifStatement(condition=" + condition + ", body=" + body + ")";
+        String cond = (condition != null) ? condition.expression : "";
+        String result = "{% elif " + cond + " %}";
+        if (body != null) {
+            result += body.stream().map(Object::toString).collect(Collectors.joining());
+        }
+        return result;
     }
+
 
     @Override
     public <T> T accept(NodeVisitor<T> visitor) {

@@ -1,6 +1,7 @@
 package builder;
 
 import ast.Node;
+import ast.css.CssStylesheet;
 import ast.html.HtmlDocument;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -10,5 +11,9 @@ public class ASTBuilder {
         HtmlJinjaVisitor visitor = new HtmlJinjaVisitor();
         return (HtmlDocument) visitor.visit(tree);
     }
-    // لاحقاً يمكن اضافة CssVisitor و JinjaVisitor مستقلة
+
+    public Node buildCss(ParseTree tree) {
+        HtmlJinjaVisitor visitor = new HtmlJinjaVisitor();
+        return (CssStylesheet) visitor.visit(tree);
+    }
 }

@@ -14,8 +14,9 @@ public class HtmlChardata extends Node {
 
     @Override
     public String toString() {
-        return "HtmlChardata(text=\"" + text + "\")";
+        return text;
     }
+
 
 
     @Override
