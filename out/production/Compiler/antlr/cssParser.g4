@@ -4,188 +4,191 @@ options {
     tokenVocab = cssLexer;
 }
 
+/* =================== Css Main Style Sheet =================== */ // Contains
 stylesheet
-    : ws (charset ( Comment | Space | Cdo | Cdc)*)* (imports ( Comment | Space | Cdo | Cdc)*)* (
-        namespace_ ( Comment | Space | Cdo | Cdc)*
-    )* (nestedStatement ( Comment | Space | Cdo | Cdc)*)* EOF
+    : ws (charset ( COMMENT | SPACE | CDO | CDC)*)* (import_statement ( COMMENT | SPACE | CDO | CDC)*)* (
+        namespace_statement ( COMMENT | SPACE | CDO | CDC)*
+    )* (nestedStatement ( COMMENT | SPACE | CDO | CDC)*)* EOF
     ;
 
+/* =================== Charset Def =================== */ // As ::@charset "test";
 charset
-    : Charset ws String_ ws ';' ws # goodCharset
-    | Charset ws String_ ws        # badCharset
+    : CHARSET ws STRING ws SEMI? ws
     ;
 
-imports
-    : Import ws (String_ | url) ws mediaQueryList ';' ws # goodImport
-    | Import ws ( String_ | url) ws ';' ws               # goodImport
-    | Import ws ( String_ | url) ws mediaQueryList       # badImport
-    | Import ws ( String_ | url) ws                      # badImport
+/* =================== Import Def =================== */ // As ::@import "test" or url(test);
+import_statement
+    : IMPORT ws (STRING | url) ws mediaQueryList SEMI? ws
     ;
 
-// Namespaces
-// https://www.w3.org/TR/css-namespaces-3/
-namespace_
-    : Namespace ws (namespacePrefix ws)? (String_ | url) ws ';' ws # goodNamespace
-    | Namespace ws (namespacePrefix ws)? ( String_ | url) ws       # badNamespace
+/* =================== Namespace Def =================== */ // As ::@namespace "test";
+namespace_statement
+    : NAMESPACE ws (namespacePrefix ws)? (STRING | url) ws SEMI? ws
     ;
 
 namespacePrefix
     : ident
     ;
 
-// Media queries
-// https://www.w3.org/TR/css3-mediaqueries/
+/* =================== Media Def =================== */ // As ::@media () {}
 media
-    : Media ws mediaQueryList groupRuleBody ws
+    : MEDIA ws mediaQueryList groupRuleBody ws
     ;
 
+// As @media (), ()
 mediaQueryList
-    : (mediaQuery ( Comma ws mediaQuery)*)? ws
+    : (mediaQuery ( COMMA ws mediaQuery)*)? ws
     ;
 
+// As this -> (only | not) screen and (max-width: 767px) - or this -> (max-width: 767px) and (min-width: 1200px)
 mediaQuery
-    : (MediaOnly | Not)? ws mediaType ws (And ws mediaExpression)*
-    | mediaExpression ( And ws mediaExpression)*
+    : (MEDIA_ONLY | NOT)? ws mediaType ws (AND ws mediaExpression)*
+    | mediaExpression ( AND ws mediaExpression)*
     ;
 
+// As any thing and, or, to ...etc
 mediaType
     : ident
     ;
 
+// As (mediafeature: expr) Ex: (max-width: 767px)
 mediaExpression
-    : '(' ws mediaFeature (':' ws expr)? ')' ws
+    : LPAREN ws mediaFeature (COLON ws expr)? RPAREN ws
     ;
 
 mediaFeature
     : ident ws
     ;
 
-// Page
+// As @page:test {}
 page
-    : Page ws pseudoPage? '{' ws declaration? (';' ws declaration?)* '}' ws
+    : PAGE ws pseudoPage? LBRACE ws declaration? (SEMI ws declaration?)* RBRACE ws
     ;
 
+// As :ident
 pseudoPage
-    : ':' ident ws
+    : COLON ident ws
     ;
 
-// Selectors
-// https://www.w3.org/TR/css3-selectors/
+// As .name, .email {}
 selectorGroup
-    : selector (Comma ws selector)*
+    : selector (COMMA ws selector)*
     ;
 
+// Sequence of selector (+ | > | ~ | ) Sequence of selector
 selector
     : simpleSelectorSequence ws (combinator simpleSelectorSequence ws)*
     ;
 
+// As (+ > ~) Ex: .name ~ p
 combinator
-    : Plus ws
-    | Greater ws
-    | Tilde ws
-    | Space ws
+    : PLUS ws
+    | GREATER ws
+    | TILDE ws
+    | SPACE ws
     ;
 
+// Types of selectors
 simpleSelectorSequence
-    : (typeSelector | universal) (Hash | className | attrib | pseudo | negation)*
-    | ( Hash | className | attrib | pseudo | negation)+
+    : (typeSelector | universal) (HASH | className | attrib | pseudo | negation)*
+    | ( HASH | className | attrib | pseudo | negation)+
     ;
 
+// As div, h1, p, ...etc {}
 typeSelector
     : typeNamespacePrefix? elementName
     ;
 
 typeNamespacePrefix
-    : (ident | '*')? '|'
+    : (ident | MULTI)? PIPE
     ;
 
 elementName
     : ident
     ;
 
+// As * {}
 universal
-    : typeNamespacePrefix? '*'
+    : typeNamespacePrefix? MULTI
     ;
 
+// As .className {}
 className
-    : '.' ident
+    : DOT ident
     ;
 
+// As selector[attr=value]
 attrib
-    : '[' ws typeNamespacePrefix? ident ws (
-        (PrefixMatch | SuffixMatch | SubstringMatch | '=' | Includes | DashMatch) ws (
+    : LSBRAC ws typeNamespacePrefix? ident ws (
+        (PREFIX_MATCH | SUFFIX_MATCH | SUB_STR_MATCH | EQUAL | ICLUDES | DASH_MATCH) ws (
             ident
-            | String_
+            | STRING
         ) ws
-    )? ']'
+    )? RSBRAC
     ;
 
+// As ::before, :focus, ...etc
 pseudo
-    /* '::' starts a pseudo-element, ':' a pseudo-class */
-    /* Exceptions: :first-line, :first-letter, :before And :after. */
-    /* Note that pseudo-elements are restricted to one per selector And */
-    /* occur MediaOnly in the last simple_selector_sequence. */
-    : ':' ':'? (ident | functionalPseudo)
+    : COLON COLON? (ident | functionalPseudo)
     ;
 
+// As test(expr)
 functionalPseudo
-    : Function_ ws expression ')'
+    : FUNCTION_IDENT ws expression RPAREN
     ;
 
 expression
-    /* In CSS3, the expressions are identifiers, strings, */
-    /* or of the form "an+b" */
-    : (( Plus | Minus | Dimension | UnknownDimension | Number | String_ | ident) ws)+
+    : (( PLUS | MINUS | DIMENSION | UNKNOWN_DIME | NUMBER | STRING | ident) ws)+
     ;
 
 negation
-    : PseudoNot ws negationArg ws ')'
+    : PSEUDO_NOT ws negationArg ws RSBRAC
     ;
 
 negationArg
     : typeSelector
     | universal
-    | Hash
+    | HASH
     | className
     | attrib
     | pseudo
     ;
 
-// Rules
+// Use between expr
 operator_
-    : '/' ws   # goodOperator
-    | Comma ws # goodOperator
-    | Space ws # goodOperator
-    | '=' ws   # badOperator // IE filter and DXImageTransform function
+    : DIVIDE ws   # goodOperator
+    | COMMA ws    # goodOperator
+    | SPACE ws    # goodOperator
+    | EQUAL ws    # badOperator
     ;
 
 property_
     : ident ws    # goodProperty
     | Variable ws # goodProperty
-    | '*' ident   # badProperty // IE hacks
-    | '_' ident   # badProperty // IE hacks
+    | MULTI ident   # badProperty
+    | UNDER_SCORE ident   # badProperty
     ;
 
 ruleset
-    : selectorGroup '{' ws declarationList? '}' ws # knownRuleset
-    | any_* '{' ws declarationList? '}' ws         # unknownRuleset
+    : selectorGroup LBRACE ws declarationList? RBRACE ws # knownRuleset
+    | any_* LBRACE ws declarationList? RBRACE ws         # unknownRuleset
     ;
 
 declarationList
-    : (';' ws)* declaration ws (';' ws declaration?)*
+    : (SEMI ws)* declaration ws (SEMI ws declaration?)*
     ;
 
 declaration
-    : property_ ':' ws expr prio? # knownDeclaration
-    | property_ ':' ws value      # unknownDeclaration
+    : property_ COLON ws expr prio? # knownDeclaration
+    | property_ COLON ws value      # unknownDeclaration
     ;
 
 prio
-    : Important ws
+    : IMPORTANT ws
     ;
 
 value
-    : (any_ | block | AtKeyword ws)+
+    : (any_ | block | AT_KEYWORD ws)+
     ;
 
 expr
@@ -196,8 +199,8 @@ term
     : number ws           # knownTerm
     | percentage ws       # knownTerm
     | dimension ws        # knownTerm
-    | String_ ws          # knownTerm
-    | UnicodeRange ws     # knownTerm
+    | STRING ws          # knownTerm
+    | UNICODE_RANGE ws     # knownTerm
     | ident ws            # knownTerm
     | var_                # knownTerm
     | url ws              # knownTerm
@@ -209,31 +212,31 @@ term
     ;
 
 function_
-    : Function_ ws expr ')' ws
+    : FUNCTION_IDENT ws expr RPAREN ws
     ;
 
 dxImageTransform
-    : DxImageTransform ws expr ')' ws // IE DXImageTransform function
+    : DxImageTransform ws expr RPAREN ws
     ;
 
 hexcolor
-    : Hash ws
+    : HASH ws
     ;
 
 number
-    : (Plus | Minus)? Number
+    : (PLUS | MINUS)? NUMBER
     ;
 
 percentage
-    : (Plus | Minus)? Percentage
+    : (PLUS | MINUS)? PERCENTAGE
     ;
 
 dimension
-    : (Plus | Minus)? Dimension
+    : (PLUS | MINUS)? DIMENSION
     ;
 
 unknownDimension
-    : (Plus | Minus)? UnknownDimension
+    : (PLUS | MINUS)? UNKNOWN_DIME
     ;
 
 // Error handling
@@ -243,37 +246,34 @@ any_
     | percentage ws
     | dimension ws
     | unknownDimension ws
-    | String_ ws
-    //| Delim ws    // Not implemented yet
+    | STRING ws
     | url ws
-    | Hash ws
-    | UnicodeRange ws
-    | Includes ws
-    | DashMatch ws
-    | ':' ws
-    | Function_ ws ( any_ | unused)* ')' ws
+    | HASH ws
+    | UNICODE_RANGE ws
+    | ICLUDES ws
+    | DASH_MATCH ws
+    | COLON ws
+    | FUNCTION_IDENT ws ( any_ | unused)* ')' ws
     | '(' ws ( any_ | unused)* ')' ws
     | '[' ws ( any_ | unused)* ']' ws
     ;
 
 atRule
-    : AtKeyword ws any_* (block | ';' ws) # unknownAtRule
+    : AT_KEYWORD ws any_* (block | SEMI ws) # unknownAtRule
     ;
 
 unused
     : block
-    | AtKeyword ws
-    | ';' ws
-    | Cdo ws
-    | Cdc ws
+    | AT_KEYWORD ws
+    | SEMI ws
+    | CDO ws
+    | CDC ws
     ;
 
 block
-    : '{' ws (declarationList | nestedStatement | any_ | block | AtKeyword ws | ';' ws)* '}' ws
+    : LBRACE ws (declarationList | nestedStatement | any_ | block | AT_KEYWORD ws | SEMI ws)* RBRACE ws
     ;
 
-// Conditional
-// https://www.w3.org/TR/css3-conditional/
 nestedStatement
     : ruleset
     | media
@@ -288,11 +288,11 @@ nestedStatement
     ;
 
 groupRuleBody
-    : '{' ws nestedStatement* '}' ws
+    : LBRACE ws nestedStatement* RBRACE ws
     ;
 
 supportsRule
-    : Supports ws supportsCondition ws groupRuleBody
+    : SUPPORTS ws supportsCondition ws groupRuleBody
     ;
 
 supportsCondition
@@ -303,56 +303,50 @@ supportsCondition
     ;
 
 supportsConditionInParens
-    : '(' ws supportsCondition ws ')'
+    : LPAREN ws supportsCondition ws RPAREN
     | supportsDeclarationCondition
     | generalEnclosed
     ;
 
 supportsNegation
-    : Not ws Space ws supportsConditionInParens
+    : NOT ws SPACE ws supportsConditionInParens
     ;
 
 supportsConjunction
-    : supportsConditionInParens (ws Space ws And ws Space ws supportsConditionInParens)+
+    : supportsConditionInParens (ws SPACE ws AND ws SPACE ws supportsConditionInParens)+
     ;
 
 supportsDisjunction
-    : supportsConditionInParens (ws Space ws Or ws Space ws supportsConditionInParens)+
+    : supportsConditionInParens (ws SPACE ws OR ws SPACE ws supportsConditionInParens)+
     ;
 
 supportsDeclarationCondition
-    : '(' ws declaration ')'
+    : LPAREN ws declaration RPAREN
     ;
 
 generalEnclosed
-    : (Function_ | '(') (any_ | unused)* ')'
+    : (FUNCTION_IDENT | LPAREN) (any_ | unused)* RPAREN
     ;
 
-// Url
-// https://www.w3.org/TR/css3-values/#urls
 url
-    : Url_ ws String_ ws ')'
-    | Url
+    : URL_ ws STRING ws RPAREN
+    | URL
     ;
 
-// Variable
-// https://www.w3.org/TR/css-variables-1
 var_
-    : Var ws Variable ws ')' ws
+    : Var ws Variable ws RPAREN ws
     ;
 
-// Calc
-// https://www.w3.org/TR/css3-values/#calc-syntax
 calc
-    : Calc ws calcSum ')' ws
+    : Calc ws calcSum RPAREN ws
     ;
 
 calcSum
-    : calcProduct (Space ws ( Plus | Minus) ws Space ws calcProduct)*
+    : calcProduct (SPACE ws ( PLUS | MINUS) ws SPACE ws calcProduct)*
     ;
 
 calcProduct
-    : calcValue ('*' ws calcValue | '/' ws number ws)*
+    : calcValue (MULTI ws calcValue | DIVIDE ws number ws)*
     ;
 
 calcValue
@@ -360,86 +354,73 @@ calcValue
     | dimension ws
     | unknownDimension ws
     | percentage ws
-    | '(' ws calcSum ')' ws
+    | LPAREN ws calcSum RPAREN ws
     ;
 
-// Font face
-// https://www.w3.org/TR/2013/CR-css-fonts-3-20131003/#font-face-rule
 fontFaceRule
-    : FontFace ws '{' ws fontFaceDeclaration? (';' ws fontFaceDeclaration?)* '}' ws
+    : FONT_FACE ws LBRACE ws fontFaceDeclaration? (SEMI ws fontFaceDeclaration?)* RBRACE ws
     ;
 
 fontFaceDeclaration
-    : property_ ':' ws expr  # knownFontFaceDeclaration
-    | property_ ':' ws value # unknownFontFaceDeclaration
+    : property_ COLON ws expr  # knownFontFaceDeclaration
+    | property_ COLON ws value # unknownFontFaceDeclaration
     ;
 
-// Animations
-// https://www.w3.org/TR/css3-animations/
 keyframesRule
-    : Keyframes ws Space ws ident ws '{' ws keyframeBlock* '}' ws
+    : Keyframes ws SPACE ws ident ws LBRACE ws keyframeBlock* RBRACE ws
     ;
 
 keyframeBlock
-    : (keyframeSelector '{' ws declarationList? '}' ws)
+    : (keyframeSelector LBRACE ws declarationList? RBRACE ws)
     ;
 
 keyframeSelector
-    : (From | To | Percentage) ws (Comma ws ( From | To | Percentage) ws)*
+    : (FROM | TO | PERCENTAGE) ws (COMMA ws ( FROM | TO | PERCENTAGE) ws)*
     ;
 
-// Viewport
-// https://www.w3.org/TR/css-device-adapt-1/
 viewport
-    : Viewport ws '{' ws declarationList? '}' ws
+    : Viewport ws LBRACE ws declarationList? RBRACE ws
     ;
 
-// Counter style
-// https://www.w3.org/TR/css-counter-styles-3/
 counterStyle
-    : CounterStyle ws ident ws '{' ws declarationList? '}' ws
+    : CounterStyle ws ident ws LBRACE ws declarationList? RBRACE ws
     ;
 
-// Font feature values
-// https://www.w3.org/TR/css-fonts-3/
 fontFeatureValuesRule
-    : FontFeatureValues ws fontFamilyNameList ws '{' ws featureValueBlock* '}' ws
+    : FontFeatureValues ws fontFamilyNameList ws LBRACE ws featureValueBlock* RBRACE ws
     ;
 
 fontFamilyNameList
-    : fontFamilyName (ws Comma ws fontFamilyName)*
+    : fontFamilyName (ws COMMA ws fontFamilyName)*
     ;
 
 fontFamilyName
-    : String_
+    : STRING
     | ident ( ws ident)*
     ;
 
 featureValueBlock
-    : featureType ws '{' ws featureValueDefinition? (ws ';' ws featureValueDefinition?)* '}' ws
+    : featureType ws LBRACE ws featureValueDefinition? (ws SEMI ws featureValueDefinition?)* RBRACE ws
     ;
 
 featureType
-    : AtKeyword
+    : AT_KEYWORD
     ;
 
 featureValueDefinition
-    : ident ws ':' ws number (ws number)*
+    : ident ws COLON ws number (ws number)*
     ;
 
-// The specific words can be identifiers too
 ident
-    : Ident
-    | MediaOnly
-    | Not
-    | And
-    | Or
-    | From
-    | To
+    : IDENT
+    | MEDIA_ONLY
+    | NOT
+    | AND
+    | OR
+    | FROM
+    | TO
     ;
 
-// Comments might be part of CSS hacks, thus pass them to visitor to decide whether to skip
-// Spaces are significant around '+' '-' '(', thus they should not be skipped
 ws
-    : (Comment | Space)*
+    : (COMMENT | SPACE)*
     ;

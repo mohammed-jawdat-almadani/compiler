@@ -1,0 +1,396 @@
+parser grammar cssParser;
+
+options {
+    tokenVocab = cssLexer;
+}
+
+stylesheet
+    : ws (charset ( COMMENT | SPACE )*)* (imports ( COMMENT | SPACE )*)* (
+        namespace_ ( COMMENT | SPACE )*
+    )* (nestedStatement ( COMMENT | SPACE )*)* EOF
+    ;
+
+charset
+    : CHARSET ws STRING ws SEMI ws # goodCharset
+    | CHARSET ws STRING ws         # badCharset
+    ;
+
+imports
+    : IMPORT ws ( STRING | url) ws mediaQueryList SEMI ws # goodImport
+    | IMPORT ws ( STRING | url) ws SEMI ws                # goodImport
+    | IMPORT ws ( STRING | url) ws mediaQueryList         # badImport
+    | IMPORT ws ( STRING | url) ws                        # badImport
+    ;
+
+namespace_
+    : NAMESPACE ws (namespacePrefix ws)? ( STRING | url) ws SEMI ws # goodNamespace
+    | NAMESPACE ws (namespacePrefix ws)? ( STRING | url) ws         # badNamespace
+    ;
+
+namespacePrefix
+    : ident
+    ;
+
+media
+    : MEDIA ws mediaQueryList groupRuleBody ws
+    ;
+
+mediaQueryList
+    : (mediaQuery ( COMMA ws mediaQuery)*)? ws
+    ;
+
+mediaQuery
+    : (ONLY | NOT)? ws mediaType ws (AND ws mediaExpression)*
+    | mediaExpression ( AND ws mediaExpression)*
+    ;
+
+mediaType
+    : ident
+    ;
+
+mediaExpression
+    : LPAREN ws mediaFeature (COLON ws expr)? RPAREN ws
+    ;
+
+mediaFeature
+    : ident ws
+    ;
+
+page
+    : PAGE ws pseudoPage? LBRACE ws declaration? (SEMI ws declaration?)* RBRACE ws
+    ;
+
+pseudoPage
+    : COLON ident ws
+    ;
+
+selectorGroup
+    : selector (COMMA ws selector)*
+    ;
+
+selector
+    : simpleSelectorSequence ws (combinator simpleSelectorSequence ws)*
+    ;
+
+combinator
+    : PLUS ws
+    | GREATER ws
+    | TILDE ws
+    | SPACE ws
+    ;
+
+simpleSelectorSequence
+    : (typeSelector | universal) (HASH | className | attrib | pseudo | negation)*
+    | ( HASH | className | attrib | pseudo | negation)+
+    ;
+
+typeSelector
+    : typeNamespacePrefix? elementName
+    ;
+
+typeNamespacePrefix
+    : (ident | MULTIPLY)? PIPE
+    ;
+
+elementName
+    : ident
+    ;
+
+universal
+    : typeNamespacePrefix? MULTIPLY
+    ;
+
+className
+    : DOT ident
+    ;
+
+attrib
+    : LBRACK ws typeNamespacePrefix? ident ws (
+        (PREFIX_MATCH | SUFFIX_MATCH | SUBSTRING_MATCH | '=' | INCLUDES | DASH_MATCH) ws (
+            ident
+            | STRING
+        ) ws
+    )? RBRACK
+    ;
+
+pseudo
+    : COLON COLON? (ident | functionalPseudo)
+    ;
+
+functionalPseudo
+    : IDENT ws expression RPAREN?
+    ;
+
+expression
+    : (( PLUS | MINUS | DIMENSION | NUMBER | STRING | ident) ws)+
+    ;
+
+negation
+    : COLON NOT LPAREN ws negationArg ws RPAREN
+    ;
+
+negationArg
+    : typeSelector
+    | universal
+    | HASH
+    | className
+    | attrib
+    | pseudo
+    ;
+
+operator_
+    : DIVIDE ws   # goodOperator
+    | COMMA ws # goodOperator
+    | SPACE ws # goodOperator
+    | EQUAL ws   # badOperator
+    ;
+
+property_
+    : ident ws    # goodProperty
+    | VARIABLE ws # goodProperty
+    | MULTIPLY ident   # badProperty // IE hacks
+    | UNDER ident   # badProperty // IE hacks
+    ;
+
+ruleset
+    : selectorGroup LBRACE ws declarationList? RBRACE ws # knownRuleset
+    | any_* LBRACE ws declarationList? RBRACE ws         # unknownRuleset
+    ;
+
+declarationList
+    : (SEMI ws)* declaration ws (SEMI ws declaration?)*
+    ;
+
+declaration
+    : property_ COLON ws expr prio? # knownDeclaration
+    | property_ COLON ws value      # unknownDeclaration
+    ;
+
+prio
+    : IMPORTANT ws
+    ;
+
+value
+    : (any_ | block | AT IDENT ws)+
+    ;
+
+expr
+    : term (operator_? term)*
+    ;
+
+term
+    : number ws           # knownTerm
+    | percentage ws       # knownTerm
+    | dimension ws        # knownTerm
+    | STRING ws          # knownTerm
+    | ident ws            # knownTerm
+    | var_                # knownTerm
+    | url ws              # knownTerm
+    | hexcolor            # knownTerm
+    | calc                # knownTerm
+    | function_           # knownTerm
+    | dxImageTransform    # badTerm
+    ;
+
+function_
+    : FUNCTION ws expr RPAREN ws
+    ;
+
+dxImageTransform
+    : DX_IMAGE ws expr RPAREN ws // IE DXImageTransform function
+    ;
+
+hexcolor
+    : HASH ws
+    ;
+
+number
+    : (PLUS | MINUS)? NUMBER
+    ;
+
+percentage
+    : (PLUS | MINUS)? PERCENTAGE
+    ;
+
+dimension
+    : (PLUS | MINUS)? DIMENSION
+    ;
+
+any_
+    : ident ws
+    | number ws
+    | percentage ws
+    | dimension ws
+    | STRING ws
+    | url ws
+    | HASH ws
+    | INCLUDES ws
+    | DASH_MATCH ws
+    | COLON ws
+    | FUNCTION ws ( any_ | unused)* RPAREN ws
+    | LPAREN ws ( any_ | unused)* RPAREN ws
+    | LBRACK ws ( any_ | unused)* RBRACK ws
+    ;
+
+atRule
+    : AT IDENT ws any_* (block | SEMI ws) # unknownAtRule
+    ;
+
+unused
+    : block
+    | AT IDENT ws
+    | SEMI ws
+    ;
+
+block
+    : LBRACE ws (declarationList | nestedStatement | any_ | block | AT IDENT ws | SEMI ws)* RBRACE ws
+    ;
+
+nestedStatement
+    : ruleset
+    | media
+    | page
+    | fontFaceRule
+    | keyframesRule
+    | supportsRule
+    | viewport
+    | counterStyle
+    | fontFeatureValuesRule
+    | atRule
+    ;
+
+groupRuleBody
+    : LBRACE ws nestedStatement* RBRACE ws
+    ;
+
+supportsRule
+    : SUPPORTS ws supportsCondition ws groupRuleBody
+    ;
+
+supportsCondition
+    : supportsNegation
+    | supportsConjunction
+    | supportsDisjunction
+    | supportsConditionInParens
+    ;
+
+supportsConditionInParens
+    : LPAREN ws supportsCondition ws RPAREN
+    | supportsDeclarationCondition
+    | generalEnclosed
+    ;
+
+supportsNegation
+    : NOT ws SPACE ws supportsConditionInParens
+    ;
+
+supportsConjunction
+    : supportsConditionInParens (ws SPACE ws AND ws SPACE ws supportsConditionInParens)+
+    ;
+
+supportsDisjunction
+    : supportsConditionInParens (ws SPACE ws OR ws SPACE ws supportsConditionInParens)+
+    ;
+
+supportsDeclarationCondition
+    : LPAREN ws declaration RPAREN
+    ;
+
+generalEnclosed
+    : (FUNCTION | LPAREN) (any_ | unused)* RPAREN
+    ;
+
+url
+    : URL ws STRING ws RPAREN
+    ;
+
+var_
+    : VAR ws VARIABLE ws RPAREN ws
+    ;
+
+calc
+    : CALC ws calcSum RPAREN ws
+    ;
+
+calcSum
+    : calcProduct (SPACE ws ( PLUS | MINUS) ws SPACE ws calcProduct)*
+    ;
+
+calcProduct
+    : calcValue (MULTIPLY ws calcValue | DIVIDE ws number ws)*
+    ;
+
+calcValue
+    : number ws
+    | dimension ws
+    | percentage ws
+    | LPAREN ws calcSum RPAREN ws
+    ;
+
+fontFaceRule
+    : FONT_FACE ws LBRACE ws fontFaceDeclaration? (SEMI ws fontFaceDeclaration?)* RBRACE ws
+    ;
+
+fontFaceDeclaration
+    : property_ COLON ws expr  # knownFontFaceDeclaration
+    | property_ COLON ws value # unknownFontFaceDeclaration
+    ;
+
+keyframesRule
+    : KEYFRAMES ws SPACE ws ident ws LBRACE ws keyframeBlock* RBRACE ws
+    ;
+
+keyframeBlock
+    : (keyframeSelector LBRACE ws declarationList? RBRACE ws)
+    ;
+
+keyframeSelector
+    : (FROM | TO | PERCENTAGE) ws (COMMA ws ( FROM | TO | PERCENTAGE) ws)*
+    ;
+
+viewport
+    : VIEWPORT ws LBRACE ws declarationList? RBRACE ws
+    ;
+
+counterStyle
+    : COUNTER_STYLE ws ident ws LBRACE ws declarationList? RBRACE ws
+    ;
+
+fontFeatureValuesRule
+    : FONT_FEATURE_VALUES ws fontFamilyNameList ws LBRACE ws featureValueBlock* RBRACE ws
+    ;
+
+fontFamilyNameList
+    : fontFamilyName (ws COMMA ws fontFamilyName)*
+    ;
+
+fontFamilyName
+    : STRING
+    | ident ( ws ident)*
+    ;
+
+featureValueBlock
+    : featureType ws LBRACE ws featureValueDefinition? (ws SEMI ws featureValueDefinition?)* LBRACE ws
+    ;
+
+featureType
+    : AT IDENT
+    ;
+
+featureValueDefinition
+    : ident ws COLON ws number (ws number)*
+    ;
+
+ident
+    : IDENT
+    | ONLY
+    | NOT
+    | AND
+    | OR
+    | FROM
+    | TO
+    ;
+
+ws
+    : (COMMENT | WS)*
+    ;
