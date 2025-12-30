@@ -26,6 +26,6 @@ public class CssCounterStyle extends Node {
         String decls = declarations.stream()
                 .map(d -> "  " + d.toString())
                 .collect(Collectors.joining(";\n"));
-        return "@counter-style " + name + " {\n" + decls + ";\n}";
+        return "@counter-style " + name + " {\n" + decls + ";\n} -> Node: CssCounterStyle " + "line: " +line;
     }
 }

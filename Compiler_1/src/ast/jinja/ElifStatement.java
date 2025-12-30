@@ -23,7 +23,7 @@ public class ElifStatement extends Node {
         if (body != null) {
             result += body.stream().map(Object::toString).collect(Collectors.joining());
         }
-        return result;
+        return result+ " -> Node: ElifStatement "+ "line: "+ line;
     }
 
 

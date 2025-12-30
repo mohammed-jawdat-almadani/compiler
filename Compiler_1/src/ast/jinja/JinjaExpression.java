@@ -13,7 +13,7 @@ public class JinjaExpression extends Node {
 
     @Override
     public String toString() {
-        return "{{ " + expression + " }}";
+        return "{{ " + expression + " }}" + " -> Node: JinjaExpression "+ "line: "+ line;
     }
 
     @Override

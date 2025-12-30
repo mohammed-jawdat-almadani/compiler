@@ -26,6 +26,6 @@ public class CssFeatureValueBlock extends Node {
         String defs = definitions.stream()
                 .map(d -> "  " + d.toString())
                 .collect(Collectors.joining(";\n"));
-        return featureType + " {\n" + defs + ";\n}";
+        return featureType + " {\n" + defs + ";\n}" + " -> Node: CssFeatureValueBlock "+ "line: "+ line;
     }
 }

@@ -26,6 +26,6 @@ public class CssSupportsRule extends Node {
         String inner = rules.stream()
                 .map(Object::toString)
                 .collect(Collectors.joining("\n"));
-        return "@supports " + condition + " {\n" + inner + "\n}";
+        return "@supports " + condition + " {\n" + inner + "\n}"+ " -> Node: CssSupportsRule "+ "line: "+ line;
     }
 }

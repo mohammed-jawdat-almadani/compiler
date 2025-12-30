@@ -18,7 +18,7 @@ public class CssMediaRule extends Node {
     @Override
     public String toString() {
         String body = rules.stream().map(r -> "  " + r.toString().replace("\n", "\n  ")).collect(Collectors.joining("\n"));
-        return "@media " + media + " {\n" + body + "\n}";
+        return "@media " + media + " {\n" + body + "\n}"+ " -> Node: CssMediaRule "+ "line: "+ line;
     }
 
     @Override

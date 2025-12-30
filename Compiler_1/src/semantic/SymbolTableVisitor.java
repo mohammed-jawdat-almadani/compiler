@@ -2,10 +2,7 @@ package semantic;
 
 import ast.Node;
 import ast.css.*;
-import ast.html.HtmlAttribute;
-import ast.html.HtmlElement;
-import ast.html.HtmlTagContent;
-import ast.html.Style;
+import ast.html.*;
 import ast.jinja.*;
 import symbol_table.SymbolTableManager;
 
@@ -19,9 +16,10 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
 
     @Override
     public Void visitHtmlAttribute(HtmlAttribute node) {
-
-        if (node.value instanceof CssStylesheet cssNode) {
-            visitCssStylesheet(cssNode);
+        if (node.value instanceof CssStylesheet cssSheet) {
+            visit(cssSheet);
+        } else if (node.value instanceof CssDeclarationList declList) {
+            visit(declList);
         }
         return null;
     }
@@ -35,11 +33,10 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
     public Void visitHtmlElement(HtmlElement node) {
         if (node.children != null) {
             for (Node child : node.children) {
-                // إذا child هو AST CSS
                 if (child instanceof CssStylesheet cssNode) {
                     visitCssStylesheet(cssNode);
                 } else {
-                    visit(child); // زيارة باقي الأنواع
+                    visit(child);
                 }
             }
         }
@@ -97,20 +94,39 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
 
     @Override
     public Void visitCssDeclaration(CssDeclaration node) {
-        if (node.property.startsWith("--")) { // متغير CSS
+        if (node.property.startsWith("--")) {
             symtab.define(node.property, "css-var", node.line, node.column);
         }
         return null;
     }
 
     @Override
-    public Void visitStyle(Style n) {
+    public Void visitCssDeclarationList(CssDeclarationList node) {
+        for (Node decl : node.declarations) {
+            visit(decl);
+        }
+        return null;
+    }
 
-        symtab.enterScope();
+    @Override
+    public Void visitStyle(Style node) {
+        if (node.node instanceof CssStylesheet cssSheet) {
+            visitCssStylesheet(cssSheet);
+        } else {
+            visit(node.node);
+        }
+        return null;
+    }
 
-        super.visitStyle(n);
 
-        symtab.exitScope();
+
+    @Override
+    public Void visitHtmlAttributeValue(HtmlAttributeValue node) {
+        return null;
+    }
+
+    @Override
+    public Void visitHtmlStyleAttribute(HtmlStyleAttribute node) {
         return null;
     }
 

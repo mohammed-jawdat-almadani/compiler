@@ -9,7 +9,7 @@ public class HtmlTagContent extends Node {
 
     @Override
     public String toString() {
-        return text;
+        return text+ " -> Node: HtmlTagContent "+ "line: "+ line;
     }
 
     @Override

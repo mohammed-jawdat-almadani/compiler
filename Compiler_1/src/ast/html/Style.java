@@ -4,16 +4,16 @@ import ast.Node;
 import ast.NodeVisitor;
 
 public class Style extends Node {
-    public String content;
+    public Node node;
 
-    public Style(int line, int column, String content) {
+    public Style(int line, int column, Node node) {
         super(line, column);
-        this.content = content;
+        this.node = node;
     }
 
     @Override
     public String toString() {
-        return "<style>" + content + "</style>";
+        return "<style>" + node.toString() + "</style>"+ " -> Node: Style "+ "line: "+ line;
     }
 
     @Override

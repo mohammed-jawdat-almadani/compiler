@@ -13,7 +13,7 @@ public class Script extends Node {
 
     @Override
     public String toString() {
-        return "<script>" + content + "</script>";
+        return "<script>" + content + "</script>"+ " -> Node: Script "+ "line: "+ line;
     }
 
     @Override

@@ -26,7 +26,7 @@ public class CssKeyframesRule extends Node {
         String inner = blocks.stream()
                 .map(Object::toString)
                 .collect(Collectors.joining("\n"));
-        return "@keyframes " + name + " {\n" + inner + "\n}";
+        return "@keyframes " + name + " {\n" + inner + "\n}"+ " -> Node: CssKeyframesRule "+ "line: "+ line;
     }
 }
 

@@ -35,6 +35,10 @@ public interface NodeVisitor<T> {
 
     T visitStyle(Style node);
 
+    T visitHtmlAttributeValue(HtmlAttributeValue node);
+
+    T visitHtmlStyleAttribute(HtmlStyleAttribute node);
+
     // Jinja Nodes
     T visitExtendsStatement(ExtendsStatement node);
 
@@ -60,6 +64,8 @@ public interface NodeVisitor<T> {
     T visitCssSelector(CssSelector node);
 
     T visitCssDeclaration(CssDeclaration node);
+
+    T visitCssDeclarationList(CssDeclarationList node);
 
     T visitCssMediaRule(CssMediaRule node);
 

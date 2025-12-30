@@ -20,7 +20,7 @@ public class WhileStatement extends Node {
     public String toString() {
         return "{% while " + condition.expression + " %}" +
                 body.stream().map(Object::toString).collect(Collectors.joining()) +
-                "{% endwhile %}";
+                "{% endwhile %}"+ " -> Node: WhileStatement "+ "line: "+ line;
     }
 
     @Override

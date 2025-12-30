@@ -13,7 +13,7 @@ public class CssSelector extends Node {
 
     @Override
     public String toString() {
-        return name;
+        return "\n"+name +  " -> Node: CssSelector "+ "line: "+ line;
     }
 
     @Override
