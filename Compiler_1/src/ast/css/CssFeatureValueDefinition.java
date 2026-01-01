@@ -23,6 +23,6 @@ public class CssFeatureValueDefinition extends Node {
 
     @Override
     public String toString() {
-        return name + ": " + String.join(" ", values);
+        return name + ": " + String.join(" ", values) + " -> Node: CssFeatureValueDefinition "+ "line: "+ line;
     }
 }

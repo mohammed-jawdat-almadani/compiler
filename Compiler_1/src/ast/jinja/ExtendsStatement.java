@@ -13,7 +13,7 @@ public class ExtendsStatement extends Node {
 
     @Override
     public String toString() {
-        return "{% extends " + expression + " %}\n";
+        return "{% extends " + expression + " %}" + " -> Node: ExtendsStatement "+ "line: "+ line +"\n";
     }
 
     @Override

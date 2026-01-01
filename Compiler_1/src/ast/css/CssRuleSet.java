@@ -22,7 +22,7 @@ public class CssRuleSet extends Node {
     public String toString() {
         String sel = selectors.stream().map(Object::toString).collect(Collectors.joining(", "));
         String decls = declarations.stream().map(d -> "  " + d.toString()).collect(Collectors.joining(";\n"));
-        return sel + " {\n" + decls + (decls.isEmpty() ? "" : ";") + "\n}";
+        return sel + " {\n" + decls + (decls.isEmpty() ? "" : ";") + "\n}" +  " -> Node: CssRuleSet "+ "line: "+ line + "\n";
     }
 
     @Override

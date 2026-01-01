@@ -27,6 +27,6 @@ public class CssKeyframeBlock extends Node {
         String decls = declarations.stream()
                 .map(d -> "  " + d.toString())
                 .collect(Collectors.joining(";\n"));
-        return sel + " {\n" + decls + ";\n}";
+        return sel + " {\n" + decls + ";\n}"+ " -> Node: CssKeyframeBlock "+ "line: "+ line;
     }
 }

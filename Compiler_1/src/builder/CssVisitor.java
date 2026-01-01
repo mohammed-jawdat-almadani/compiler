@@ -44,6 +44,7 @@ public class CssVisitor extends cssParserBaseVisitor<Node> {
 
     @Override
     public Node visitKnownDeclaration(cssParser.KnownDeclarationContext ctx) {
+
         String property = ctx.property_().getText();
         String value = ctx.expr().getText();
         return new CssDeclaration(ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine(), property, value);
@@ -70,6 +71,31 @@ public class CssVisitor extends cssParserBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitDeclarationList(cssParser.DeclarationListContext ctx) {
+        List<Node> declarations = new ArrayList<>();
+
+        for (cssParser.DeclarationContext declCtx : ctx.declaration()) {
+            String text = declCtx.getText();
+
+            int colonIndex = text.indexOf(':');
+            if (colonIndex > 0) {
+                String property = text.substring(0, colonIndex).trim();
+                String value = text.substring(colonIndex + 1).trim();
+
+                CssDeclaration cssDecl = new CssDeclaration(
+                        declCtx.getStart().getLine(),
+                        declCtx.getStart().getCharPositionInLine(),
+                        property,
+                        value
+                );
+                declarations.add(cssDecl);
+            }
+        }
+
+        return new CssDeclarationList(ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine(), declarations);
+    }
+
+    @Override
     public Node visitKeyframesRule(cssParser.KeyframesRuleContext ctx) {
         String name = ctx.ident().getText();
         List<CssKeyframeBlock> blocks = new ArrayList<>();
@@ -81,7 +107,6 @@ public class CssVisitor extends cssParserBaseVisitor<Node> {
 
     @Override
     public Node visitKeyframeBlock(cssParser.KeyframeBlockContext ctx) {
-        // نقسم الـ selector على الفواصل
         List<String> selectors = List.of(ctx.keyframeSelector().getText().split("\\s*,\\s*"));
 
         List<CssDeclaration> declarations = new ArrayList<>();

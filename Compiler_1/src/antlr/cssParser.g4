@@ -6,7 +6,7 @@ options {
 
 /* =================== Css Main Style Sheet =================== */ // Contains
 stylesheet
-    : ws (charset ( COMMENT | SPACE | CDO | CDC)*)* (import_statement ( COMMENT | SPACE | CDO | CDC)*)* (
+    : declarationList | ws (charset ( COMMENT | SPACE | CDO | CDC)*)* (import_statement ( COMMENT | SPACE | CDO | CDC)*)* (
         namespace_statement ( COMMENT | SPACE | CDO | CDC)*
     )* (nestedStatement ( COMMENT | SPACE | CDO | CDC)*)* EOF
     ;

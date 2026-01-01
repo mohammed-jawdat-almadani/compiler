@@ -2,12 +2,18 @@ package builder;
 
 import antlr.*;
 import ast.*;
+import ast.css.CssDeclaration;
+import ast.css.CssDeclarationList;
 import ast.html.*;
 import ast.jinja.*;
 
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
@@ -92,69 +98,123 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     @Override
     public Node visitStyle(HtmlJinjaParser.StyleContext ctx) {
 
-        String cssText = ctx.STYLE_BODY().getText();
-        if (cssText.trim().endsWith("</style>")) {
-            cssText = cssText.substring(0, cssText.lastIndexOf("</style>")).trim();
-        }
+        String cssText = ctx.STYLE_BODY().getText()
+                .replaceFirst("</style>$", "")
+                .trim();
 
-        CssVisitor cssVisitor = new CssVisitor();
-        Node cssNode;
+
         try {
-            antlr.cssParser parser = new antlr.cssParser(
-                    new org.antlr.v4.runtime.CommonTokenStream(
-                            new antlr.cssLexer(
-                                    org.antlr.v4.runtime.CharStreams.fromString(cssText)
-                            )
+            CssVisitor cssVisitor = new CssVisitor();
+            cssParser parser = new cssParser(
+                    new CommonTokenStream(
+                            new cssLexer(CharStreams.fromString(cssText))
                     )
             );
-            cssNode = cssVisitor.visitStylesheet(parser.stylesheet());
+
+            Node cssAst = cssVisitor.visit(parser.stylesheet());
+
+            return new Style(
+                    ctx.start.getLine(),
+                    ctx.start.getCharPositionInLine(),
+                    cssAst
+            );
+
         } catch (Exception e) {
-            cssNode = new HtmlChardata(ctx.start.getLine(), ctx.start.getCharPositionInLine(), cssText);
+            return new HtmlChardata(
+                    ctx.start.getLine(),
+                    ctx.start.getCharPositionInLine(),
+                    cssText
+            );
         }
-        String test = "<style>\n" + cssNode.toString() + "\n</style>";
-        return new HtmlChardata(ctx.start.getLine(), ctx.start.getCharPositionInLine(), test);
     }
 
     @Override
     public Node visitHtmlTagContent(HtmlJinjaParser.HtmlTagContentContext ctx) {
-       return new HtmlTagContent(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.getText());
+        if (ctx.htmlAttribute() != null) {
+            return visit(ctx.htmlAttribute());
+        }
+        else {
+            return visit(ctx.TAG_JINJA_VAR());
+        }
     }
 
     @Override
     public Node visitHtmlAttribute(HtmlJinjaParser.HtmlAttributeContext ctx) {
+
         String name = ctx.TAG_NAME().getText();
-        Object value = null;
+        Node value = null;
 
         if (ctx.ATTVALUE_VALUE() != null) {
-            String attrValue = ctx.ATTVALUE_VALUE().getText();
 
-            // إذا كان اسم الـ attribute هو "style"، نرسل القيمة لـ CssVisitor
+            String raw = ctx.ATTVALUE_VALUE().getText();
+            String attrValue = raw.replaceAll("^['\"]|['\"]$", "");
+
             if ("style".equalsIgnoreCase(name)) {
-                CssVisitor cssVisitor = new CssVisitor();
-                try {
-                    antlr.cssParser parser = new antlr.cssParser(
-                            new org.antlr.v4.runtime.CommonTokenStream(
-                                    new antlr.cssLexer(
-                                            org.antlr.v4.runtime.CharStreams.fromString(attrValue)
-                                    )
-                            )
-                    );
-                    // تحليل CSS وإرجاع Node الخاص بالـ CSS
-                    Node cssNode = cssVisitor.visitStylesheet(parser.stylesheet());
-                    value = cssNode; // نخزن AST الخاص بالـ CSS بدلاً من النص
-                } catch (Exception e) {
-                    // إذا حدث خطأ، نترك النص كما هو
-                    value = attrValue;
+                List<Node> decls = new ArrayList<>();
+                String[] parts = attrValue.split(";");
+                for (String part : parts) {
+                    part = part.trim();
+                    if (part.isEmpty()) continue;
+                    String[] kv = part.split(":", 2);
+                    if (kv.length < 2) continue;
+                    String property = kv[0].trim();
+                    String val = kv[1].trim();
+
+                    Node valueNode;
+                    if (isPureJinja(val)) {
+                        valueNode = new JinjaExpression(
+                                ctx.start.getLine(),
+                                ctx.start.getCharPositionInLine(),
+                                extractInnerJinja(val)
+                        );
+                    } else {
+                        valueNode = new HtmlAttributeValue(
+                                ctx.start.getLine(),
+                                ctx.start.getCharPositionInLine(),
+                                val
+                        );
+                    }
+
+                    decls.add(new CssDeclaration(
+                            ctx.start.getLine(),
+                            ctx.start.getCharPositionInLine(),
+                            property,
+                            valueNode.toString()
+                    ));
                 }
-            } else {
-                // لل attributes الأخرى نترك النص كما هو
-                value = attrValue;
+                value = new CssDeclarationList(ctx.start.getLine(), ctx.start.getCharPositionInLine(), decls);
+            }
+
+            else {
+                value = new HtmlAttributeValue(
+                        ctx.start.getLine(),
+                        ctx.start.getCharPositionInLine(),
+                        attrValue
+                );
             }
         }
 
-        return new HtmlAttribute(ctx.start.getLine(), ctx.start.getCharPositionInLine(), name, value);
+        return new HtmlAttribute(
+                ctx.start.getLine(),
+                ctx.start.getCharPositionInLine(),
+                name,
+                value
+        );
     }
 
+    private boolean isPureJinja(String value) {
+        return value.matches(".*\\{\\{.*?}}.*");
+    }
+
+    private String extractInnerJinja(String value) {
+        // \\{\\{\\s*(.*?)\\s*}}  → يلتقط كل شيء داخل الأقواس
+        Matcher m = Pattern.compile("\\{\\{\\s*(.*?)\\s*}}").matcher(value);
+
+        if (m.find()) {
+            return m.group(1).trim(); // group(1) هو المحتوى داخل {{ ... }}
+        }
+        return null;
+    }
 
     /* ---------------- Extends Statement ---------------- */
 

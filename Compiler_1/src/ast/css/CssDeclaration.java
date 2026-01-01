@@ -14,7 +14,8 @@ public class CssDeclaration extends Node {
 
     @Override
     public String toString() {
-        return property + ": " + value;
+        return property + ": " + value + " -> Node: CssDeclaration " + "line: " + line
+                ;
     }
 
     @Override

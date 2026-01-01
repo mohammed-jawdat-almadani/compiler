@@ -15,7 +15,7 @@ public class AssignmentStatement extends Node {
 
     @Override
     public String toString() {
-        return "{% set " + variable + " = " + expression + " %}";
+        return "{% set " + variable + " = " + expression + " %}" + " -> Node: AssignmentStatement "+ "line: "+ line;
     }
 
     @Override

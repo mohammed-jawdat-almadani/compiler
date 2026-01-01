@@ -24,6 +24,6 @@ public class CssFontFaceRule extends Node {
         String decls = declarations.stream()
                 .map(d -> "  " + d.toString())
                 .collect(Collectors.joining(";\n"));
-        return "@font-face {\n" + decls + ";\n}";
+        return "@font-face {\n" + decls + ";\n}" + " -> Node: CssFontFaceRule "+ "line: "+ line;
     }
 }

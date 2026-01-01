@@ -42,7 +42,7 @@ public class IfStatement extends Node {
         }
 
         result += "{% endif %}";
-        return result;
+        return result+ " -> Node: IfStatement "+ "line: "+ line;
     }
 
     @Override

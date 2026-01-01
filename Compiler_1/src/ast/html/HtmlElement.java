@@ -34,7 +34,7 @@ public class HtmlElement extends Node {
                     .collect(Collectors.joining());
         }
 
-        return "<" + tagName + attrs + ">" + content + "</" + tagName + ">";
+        return "<" + tagName + attrs + ">" + content + "</" + tagName + ">"+ " -> Node: HtmlElement "+ "line: "+ line;
     }
 
 
