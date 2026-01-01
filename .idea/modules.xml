@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Compiler.iml" filepath="$PROJECT_DIR$/Compiler.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Flask-and-Jinja2-with-HTML-and-CSS7.iml" filepath="$PROJECT_DIR$/.idea/Flask-and-Jinja2-with-HTML-and-CSS7.iml" />
     </modules>
   </component>
 </project>
