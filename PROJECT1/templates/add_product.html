@@ -1,36 +1,61 @@
-{% extends "base.html" %}
-{% block title %}Add Product{% endblock %}
+<!-- {% extends "base.html" %} -->
+{% set title = "Add Product"%}
+<div class="h1">Add a new product</div>
+<div class="muted">
+  Enter the product information below. Image should match a file in
+  <code>static/images</code>.
+</div>
 
-{% block content %}
-  <div class="h1">Add a new product</div>
-  <div class="muted">Enter the product information below. Image should match a file in <code>static/images</code>.</div>
+<form class="form" method="post">
+  <div class="field">
+    <label for="name">Name</label>
+    <input
+            id="name"
+            type="text"
+            name="name"
+            placeholder="e.g., Laptop"
+            required
+    />
+  </div>
 
-  <form class="form" method="post">
-    <div class="field">
-      <label for="name">Name</label>
-      <input id="name" type="text" name="name" placeholder="e.g., Laptop" required>
+  <div class="field">
+    <label for="price">Price</label>
+    <input
+            id="price"
+            type="number"
+            name="price"
+            placeholder="e.g., 500"
+            required
+    />
+    <div class="helper">Numbers only.</div>
+  </div>
+
+  <div class="field">
+    <label for="details">Details</label>
+    <textarea
+            id="details"
+            name="details"
+            placeholder="Short description..."
+            required
+    ></textarea>
+  </div>
+
+  <div class="field">
+    <label for="image">Image filename</label>
+    <input
+            id="image"
+            type="text"
+            name="image"
+            placeholder="e.g., laptop.png"
+            required
+    />
+    <div class="helper">
+      Example: <code>laptop.png</code> (already included in the project).
     </div>
+  </div>
 
-    <div class="field">
-      <label for="price">Price</label>
-      <input id="price" type="number" name="price" placeholder="e.g., 500" required>
-      <div class="helper">Numbers only.</div>
-    </div>
-
-    <div class="field">
-      <label for="details">Details</label>
-      <textarea id="details" name="details" placeholder="Short description..." required></textarea>
-    </div>
-
-    <div class="field">
-      <label for="image">Image filename</label>
-      <input id="image" type="text" name="image" placeholder="e.g., laptop.png" required>
-      <div class="helper">Example: <code>laptop.png</code> (already included in the project).</div>
-    </div>
-
-    <div class="actions">
-      <button class="btn primary" type="submit">Add Product</button>
-      <a class="btn" href="{{ url_for('display_products') }}">Cancel</a>
-    </div>
-  </form>
-{% endblock %}
+  <div class="actions">
+    <button class="btn primary" type="submit">Add Product</button>
+    <a class="btn" href="{{ url_for('display_products') }}">Cancel</a>
+  </div>
+</form>

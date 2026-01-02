@@ -1,29 +1,35 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Products System{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% set title = "Products System" %}
+  <title>{{ title }}</title>
+  <link
+          rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}"
+  />
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <div class="brand">
-        <div class="title">Products Application</div>
-        <div class="subtitle">Flask + Jinja2 demo (styled with CSS)</div>
-      </div>
-      <nav class="nav">
-        <a class="pill" href="{{ url_for('display_products') }}">All Products</a>
-        <a class="pill" href="{{ url_for('add_product') }}">Add Product</a>
-      </nav>
-    </header>
+<div class="container">
+  <header class="header">
+    <div class="brand">
+      <div class="title">Products Application</div>
+      <div class="subtitle">Flask + Jinja2 demo (styled with CSS)</div>
+    </div>
+    <nav class="nav">
+      <a class="pill" href="{{ url_for('display_products') }}"
+      >All Products</a
+      >
+      <a class="pill" href="{{ url_for('add_product') }}">Add Product</a>
+    </nav>
+  </header>
+  {% set text = "Lorem ipsum dolor, sit amet consectetur adipisicing." %}
+  <main class="main">{{ text }}</main>
 
-    <main class="main">
-      {% block content %}{% endblock %}
-    </main>
-
-    <div class="footer">Tip: Click “Details” to view a product page, or “Delete” to remove an item.</div>
+  <div class="footer">
+    Tip: Click “Details” to view a product page, or “Delete” to remove an
+    item.
   </div>
+</div>
 </body>
 </html>
