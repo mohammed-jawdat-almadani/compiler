@@ -4,9 +4,22 @@ options {
     tokenVocab = HtmlJinjaLexer;
 }
 
+block_statement
+    : block_open templateContent* block_close
+    ;
+
+block_open
+    : JINJA_BLOCK_START JINJA_BLOCK JINJA_ID? JINJA_BLOCK_END
+    ;
+
+block_close
+    : JINJA_BLOCK_START JINJA_ENDBLOCK JINJA_ID? JINJA_BLOCK_END
+    ;
+
 /* =================== Main Html Document =================== */ // This is the empty document
 htmlDocument
-    : scriptletOrSeaWs* (extends_statement | jinjaComment | htmlMisc | htmlElement)*
+    : scriptletOrSeaWs*
+      (extends_statement | jinja_statement | jinjaComment | htmlMisc | htmlElement)*
     ;
 
 /* =================== Extends Statement =================== */ // As {% extends "test.html" %}
@@ -91,6 +104,7 @@ jinja_statement
     | if_statement
     | while_statement
     | for_statement
+    | block_statement
     ;
 
 /* =================== Jinja Assignment Statement =================== */ // {% set id = expression %}
