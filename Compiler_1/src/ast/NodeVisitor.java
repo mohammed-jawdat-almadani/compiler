@@ -14,7 +14,6 @@ public interface NodeVisitor<T> {
         return node.accept(this);
     }
 
-    // HTML Nodes
     T visitHtmlDocument(HtmlDocument node);
 
     T visitHtmlElement(HtmlElement node);

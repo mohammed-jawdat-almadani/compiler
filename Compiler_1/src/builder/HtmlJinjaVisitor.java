@@ -242,7 +242,6 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
     @Override
     public Node visitIf_statement(HtmlJinjaParser.If_statementContext ctx) {
-        // دائماً خذ النص الكامل للشرط
         String condText = "";
         if (ctx.if_fragment() != null)
             condText = ctx.if_fragment().getText().replaceAll("\\{\\%\\s*if\\s*", "")

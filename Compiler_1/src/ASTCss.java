@@ -16,22 +16,17 @@ public class ASTCss {
     public static void parseFile(String path) throws Exception {
         try {
 
-            // 1. تحويل النص إلى CharStream
             CharStream input = fromFileName(path);
 
-            // 2. تهيئة Lexer و Parser
             cssLexer lexer = new cssLexer(input);
             CommonTokenStream tokens = new CommonTokenStream(lexer);
             cssParser parser = new cssParser(tokens);
 
-            // 3. بناء ParseTree
             ParseTree tree = parser.stylesheet();
 
-            // 4. استخدام CssVisitor لبناء AST
             CssVisitor visitor = new CssVisitor();
             Node ast = (Node) visitor.visit(tree);
 
-            // 5. طباعة AST
             System.out.println("============================== [ CSS AST ] ==============================");
             System.out.println(ast);
 

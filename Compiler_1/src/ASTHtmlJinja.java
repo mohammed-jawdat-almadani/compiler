@@ -26,11 +26,9 @@ public class ASTHtmlJinja {
             ASTBuilder builder = new ASTBuilder();
             Node ast = builder.buildHtml(tree);
 
-            //  [AST]
             System.out.println("============================== [ AST ] ==============================");
             System.out.println(ast);
 
-            //  [Symbol Table]
             System.out.println("============================== [ ST ] ==============================");
             SymbolTableVisitor symVisitor = new SymbolTableVisitor();
             symVisitor.visit(ast);

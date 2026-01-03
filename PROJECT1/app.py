@@ -3,13 +3,11 @@ from data import products
 
 app = Flask(__name__)
 
-# برنامج الاختبار 1: عرض المنتجات
 @app.route("/products")
 def display_products():
     return render_template("products.html", products=products)
 
 
-# برنامج الاختبار 2: إضافة منتج
 @app.route("/add", methods=["GET", "POST"])
 def add_product():
     if request.method == "POST":
@@ -36,14 +34,12 @@ def _find_product_by_id(product_id):
     return None
 
 
-# برنامج الاختبار 3: عرض تفاصيل منتج
 @app.route("/product/<int:product_id>")
 def product_details(product_id):
     product = _find_product_by_id(product_id)
     return render_template("product_details.html", product=product)
 
 
-# برنامج الاختبار 4: حذف منتج
 @app.route("/delete/<int:product_id>")
 def delete_product(product_id):
     global products

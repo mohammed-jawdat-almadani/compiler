@@ -9,12 +9,9 @@ import java.io.IOException;
 
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class ASTPython {
     public static void ParseFile(String path) {
         try {
-            //String path = "src/python/test/test1.txt";
             CharStream input = fromFileName(path);
             PythonLexer lexer = new PythonLexer(input);
             CommonTokenStream token = new CommonTokenStream(lexer);
