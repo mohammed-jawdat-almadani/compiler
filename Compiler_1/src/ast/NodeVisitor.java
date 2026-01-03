@@ -4,8 +4,6 @@ import ast.css.*;
 import ast.html.*;
 import ast.jinja.*;
 
-import javax.swing.text.html.StyleSheet;
-
 public interface NodeVisitor<T> {
     default T visitGeneric(Node node) {
         return null;
@@ -43,6 +41,8 @@ public interface NodeVisitor<T> {
     T visitExtendsStatement(ExtendsStatement node);
 
     T visitJinjaExpression(JinjaExpression node);
+
+    T visitBlockStatement(ast.jinja.BlockStatement node);
 
     T visitAssignmentStatement(AssignmentStatement node);
 
@@ -86,4 +86,6 @@ public interface NodeVisitor<T> {
     T visitCssFeatureValueBlock(CssFeatureValueBlock node);
 
     T visitCssFeatureValueDefinition(CssFeatureValueDefinition node);
+
+
 }

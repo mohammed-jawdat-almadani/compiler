@@ -1,4 +1,4 @@
-// Generated from D:/Compiler_1/Compiler/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
+// Generated from C:/Users/NEW MSI/IdeaProjects/Flask-and-Jinja2-with-HTML-and-CSS7/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
 package antlr;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -12,6 +12,42 @@ import org.antlr.v4.runtime.tree.TerminalNode;
  */
 @SuppressWarnings("CheckReturnValue")
 public class HtmlJinjaParserBaseListener implements HtmlJinjaParserListener {
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterBlock_statement(HtmlJinjaParser.Block_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBlock_statement(HtmlJinjaParser.Block_statementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterBlock_open(HtmlJinjaParser.Block_openContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBlock_open(HtmlJinjaParser.Block_openContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterBlock_close(HtmlJinjaParser.Block_closeContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBlock_close(HtmlJinjaParser.Block_closeContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

@@ -1,4 +1,4 @@
-// Generated from D:/Compiler_1/Compiler/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
+// Generated from C:/Users/NEW MSI/IdeaProjects/Flask-and-Jinja2-with-HTML-and-CSS7/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
 package antlr;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -7,6 +7,36 @@ import org.antlr.v4.runtime.tree.ParseTreeListener;
  * {@link HtmlJinjaParser}.
  */
 public interface HtmlJinjaParserListener extends ParseTreeListener {
+	/**
+	 * Enter a parse tree produced by {@link HtmlJinjaParser#block_statement}.
+	 * @param ctx the parse tree
+	 */
+	void enterBlock_statement(HtmlJinjaParser.Block_statementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link HtmlJinjaParser#block_statement}.
+	 * @param ctx the parse tree
+	 */
+	void exitBlock_statement(HtmlJinjaParser.Block_statementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link HtmlJinjaParser#block_open}.
+	 * @param ctx the parse tree
+	 */
+	void enterBlock_open(HtmlJinjaParser.Block_openContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link HtmlJinjaParser#block_open}.
+	 * @param ctx the parse tree
+	 */
+	void exitBlock_open(HtmlJinjaParser.Block_openContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link HtmlJinjaParser#block_close}.
+	 * @param ctx the parse tree
+	 */
+	void enterBlock_close(HtmlJinjaParser.Block_closeContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link HtmlJinjaParser#block_close}.
+	 * @param ctx the parse tree
+	 */
+	void exitBlock_close(HtmlJinjaParser.Block_closeContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link HtmlJinjaParser#htmlDocument}.
 	 * @param ctx the parse tree

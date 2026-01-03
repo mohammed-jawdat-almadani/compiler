@@ -1,4 +1,4 @@
-// Generated from D:/Compiler_1/Compiler/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
+// Generated from C:/Users/NEW MSI/IdeaProjects/Flask-and-Jinja2-with-HTML-and-CSS7/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
 package antlr;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -10,6 +10,24 @@ import org.antlr.v4.runtime.tree.ParseTreeVisitor;
  * operations with no return type.
  */
 public interface HtmlJinjaParserVisitor<T> extends ParseTreeVisitor<T> {
+	/**
+	 * Visit a parse tree produced by {@link HtmlJinjaParser#block_statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBlock_statement(HtmlJinjaParser.Block_statementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link HtmlJinjaParser#block_open}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBlock_open(HtmlJinjaParser.Block_openContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link HtmlJinjaParser#block_close}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBlock_close(HtmlJinjaParser.Block_closeContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link HtmlJinjaParser#htmlDocument}.
 	 * @param ctx the parse tree

@@ -1,4 +1,4 @@
-// Generated from D:/Compiler_1/Compiler/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
+// Generated from C:/Users/NEW MSI/IdeaProjects/Flask-and-Jinja2-with-HTML-and-CSS7/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
 package antlr;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 
@@ -12,6 +12,27 @@ import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
  */
 @SuppressWarnings("CheckReturnValue")
 public class HtmlJinjaParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements HtmlJinjaParserVisitor<T> {
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitBlock_statement(HtmlJinjaParser.Block_statementContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitBlock_open(HtmlJinjaParser.Block_openContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitBlock_close(HtmlJinjaParser.Block_closeContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

@@ -58,8 +58,9 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
     public Void visitForStatement(ForStatement node) {
         symtab.enterScope();
 
-        for (String t : node.targets)
+        for (String t : node.targets) {
             symtab.define(t, "any", node.line, node.column);
+        }
 
         super.visitForStatement(node); // 👈 يكمل traversal
         symtab.exitScope();
@@ -118,7 +119,21 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
         return null;
     }
 
-
+    @Override
+    public Void visitBlockStatement(ast.jinja.BlockStatement node) {
+        if (node.getName() != null && !node.getName().isEmpty()) {
+            symtab.define(node.getName(), "jinja-block", node.line, node.column);
+        }
+        // Enter a scope for the block body (optional, but recommended)
+        symtab.enterScope();
+        if (node.getBody() != null) {
+            for (var child : node.getBody()) {
+                child.accept(this);
+            }
+        }
+        symtab.exitScope();
+        return null;
+    }
 
     @Override
     public Void visitHtmlAttributeValue(HtmlAttributeValue node) {

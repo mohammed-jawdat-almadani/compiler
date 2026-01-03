@@ -418,40 +418,58 @@ import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+//public class Main {
+//    public static void main(String[] args) {
+//        try {
+//            String path = "Compiler_1/src/python/test/test1.txt";
+//            CharStream input = fromFileName(path);
+//            PythonLexer lexer = new PythonLexer(input);
+//            CommonTokenStream token = new CommonTokenStream(lexer);
+//
+//            PythonParser parser = new PythonParser(token);
+//
+//            parser.removeErrorListeners();
+//
+//            parser.addErrorListener(new BaseErrorListener() {
+//                @Override
+//                public void syntaxError(Recognizer<?, ?> recognizer,
+//                                        Object offendingSymbol,
+//                                        int line, int charPositionInLine,
+//                                        String msg,
+//                                        RecognitionException e) {
+//                    System.err.println("SYNTAX ERROR at " + line + ":" + charPositionInLine + " -> " + msg);
+//                }
+//            });
+//
+//            ParseTree tree = parser.file_input();
+//            ASTBuilder astBuilder = new ASTBuilder();
+//            ASTNode astNode = astBuilder.visit(tree);
+//            astNode.printTree("");
+//
+//            System.out.println("\n=== Symbol Table ===");
+//            astBuilder.getSymbolTable().printSymbolTable();
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
+//}
+
+
 public class Main {
+
     public static void main(String[] args) {
         try {
-            String path = "Compiler_1/src/python/test/test1.txt";
-            CharStream input = fromFileName(path);
-            PythonLexer lexer = new PythonLexer(input);
-            CommonTokenStream token = new CommonTokenStream(lexer);
-
-            PythonParser parser = new PythonParser(token);
-
-            parser.removeErrorListeners();
-
-            parser.addErrorListener(new BaseErrorListener() {
-                @Override
-                public void syntaxError(Recognizer<?, ?> recognizer,
-                                        Object offendingSymbol,
-                                        int line, int charPositionInLine,
-                                        String msg,
-                                        RecognitionException e) {
-                    System.err.println("SYNTAX ERROR at " + line + ":" + charPositionInLine + " -> " + msg);
-                }
-            });
-
-            ParseTree tree = parser.file_input();
-            ASTBuilder astBuilder = new ASTBuilder();
-            ASTNode astNode = astBuilder.visit(tree);
-            astNode.printTree("");
-
-            System.out.println("\n=== Symbol Table ===");
-            astBuilder.getSymbolTable().printSymbolTable();
-
-        } catch (IOException e) {
+             ASTPython.ParseFile("PROJECT1/app.py");
+             ASTPython.ParseFile("PROJECT1/data.py");
+             ASTCss.parseFile("PROJECT1/static/style.css");
+             ASTHtmlJinja.parseFile("PROJECT1/templates/add_product.html");
+             ASTHtmlJinja.parseFile("PROJECT1/templates/base.html");
+             ASTHtmlJinja.parseFile("PROJECT1/templates/product_details.html");
+             ASTHtmlJinja.parseFile("PROJECT1/templates/products.html");
+        } catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 }
-

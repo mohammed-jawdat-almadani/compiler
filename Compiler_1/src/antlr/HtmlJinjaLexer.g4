@@ -112,6 +112,9 @@ JINJA_WHILE     : 'while';
 JINJA_ENDWHILE  : 'endwhile';
 JINJA_EXTENDS   : 'extends';
 
+JINJA_BLOCK     : 'block';
+JINJA_ENDBLOCK  : 'endblock';
+
 /*
  * Jinja Operators
  */

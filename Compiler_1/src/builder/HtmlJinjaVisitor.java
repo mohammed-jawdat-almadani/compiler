@@ -341,4 +341,24 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
         return new ForStatement(ctx.start.getLine(), ctx.start.getCharPositionInLine(), targets, iterable, body);
     }
+
+    @Override
+    public Node visitBlock_statement(HtmlJinjaParser.Block_statementContext ctx) {
+        String name = null;
+        if (ctx.block_open().JINJA_ID() != null) {
+            name = ctx.block_open().JINJA_ID().getText();
+        }
+
+        // Collect the inner template content
+        List<Node> body = new ArrayList<>();
+        for (var contentCtx : ctx.templateContent()) {
+            Node n = visit(contentCtx);
+            if (n != null) body.add(n);
+        }
+
+        int line = ctx.start.getLine();
+        int column = ctx.start.getCharPositionInLine();
+        return new ast.jinja.BlockStatement(line, column, name, body);
+    }
+
 }
