@@ -3,15 +3,13 @@ package semantic;
 import ast.Node;
 import ast.html.*;
 import ast.jinja.*;
-import symbol_table.SymbolTableManager;
+import symboltable.SymbolTable;
 
 public class JinjaSemanticAnalyzer extends SymbolTableVisitor {
     private int errorCount = 0;
 
-    public void injectGlobals(java.util.List<String> globals) {
-        for (String g : globals) {
-            getSymbolTable().define(g, "python-var", 0, 0);
-        }
+    public JinjaSemanticAnalyzer(SymbolTable symtab) {
+        super(symtab);
     }
 
     private void reportError(int line, int col, String message) {

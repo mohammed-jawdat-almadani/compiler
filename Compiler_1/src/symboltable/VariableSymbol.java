@@ -1,4 +1,4 @@
-package python.symboltable;
+package symboltable;
 
 public class VariableSymbol extends Symbol {
     public VariableSymbol(String name, Type type) {

@@ -3,7 +3,7 @@ package python.visitor;
 import antlr.PythonParser;
 import antlr.PythonParserBaseVisitor;
 import python.ast.*;
-import python.symboltable.*;
+import symboltable.*;
 
 
 import java.util.ArrayList;

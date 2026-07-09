@@ -1,4 +1,4 @@
-package python.symboltable;
+package symboltable;
 
 public class Symbol {
     protected String name;

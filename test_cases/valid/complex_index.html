@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="color: red; font-size: 14px;" class="container {{ y }}">
+    <h1>{{ store.name }}</h1>
+    {% if products %}
+        <ul>
+        {% for product in products %}
+            <li>{{ product.name }} - {{ product.price }}$</li>
+        {% endfor %}
+        </ul>
+    {% elif not_found %}
+        <p>Not found</p>
+    {% else %}
+        <p>No products</p>
+    {% endif %}
+</div>
+{% endblock %}

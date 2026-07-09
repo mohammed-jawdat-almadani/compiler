@@ -1,4 +1,4 @@
-package python.symboltable;
+package symboltable;
 
 public class GlobalScope extends BaseScope {
     public GlobalScope() { super(null); }

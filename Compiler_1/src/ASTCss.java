@@ -11,9 +11,11 @@ import java.io.IOException;
 
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
+import symboltable.SymbolTable;
+
 public class ASTCss {
 
-    public static void parseFile(String path) throws Exception {
+    public static void parseFile(String path, SymbolTable globalSymTab) throws Exception {
         try {
 
             CharStream input = fromFileName(path);
@@ -31,9 +33,9 @@ public class ASTCss {
             System.out.println(ast);
 
             System.out.println("============================== [ Symbol Table ] ==============================");
-            SymbolTableVisitor symVisitor = new SymbolTableVisitor();
+            SymbolTableVisitor symVisitor = new SymbolTableVisitor(globalSymTab);
             symVisitor.visit(ast);
-            symVisitor.getSymbolTable().dump();
+            symVisitor.getSymbolTable().printSymbolTable();
         } catch (IOException e) {
             e.printStackTrace();
         }

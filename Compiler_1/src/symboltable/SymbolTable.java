@@ -1,4 +1,4 @@
-package python.symboltable;
+package symboltable;
 
 import java.util.ArrayList;
 import java.util.List;

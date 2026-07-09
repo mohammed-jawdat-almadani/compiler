@@ -324,11 +324,10 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
         List<String> targets = new ArrayList<>();
         for (TerminalNode id : ctx.for_fragment().for_target().JINJA_ID()) targets.add(id.getText());
 
-        // خذ النص الكامل للتكرار كـ JinjaExpression
         String iterableText = "";
-        if (ctx.for_fragment() != null)
-            iterableText = ctx.for_fragment().getText().replaceAll("\\{\\%\\s*for\\s*", "")
-                    .replaceAll("\\s*\\%\\}", "").trim();
+        if (ctx.for_fragment() != null && ctx.for_fragment().expression() != null) {
+            iterableText = ctx.for_fragment().expression().getText();
+        }
 
         JinjaExpression iterable = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), iterableText);
 

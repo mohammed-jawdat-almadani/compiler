@@ -1,7 +1,7 @@
 package python.semantic;
 
 import python.ast.*;
-import python.symboltable.*;
+import symboltable.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,10 +13,7 @@ public class PythonSemanticAnalyzer {
     private int loopDepth = 0;
     private int functionDepth = 0;
 
-    public PythonSemanticAnalyzer() {
-        this.symbolTable = new SymbolTable();
-        this.errors = new ArrayList<>();
-    }
+    public PythonSemanticAnalyzer(SymbolTable st) { this.symbolTable = st; this.errors = new ArrayList<>(); }
 
     public List<String> getErrors() {
         return errors;
@@ -189,7 +186,7 @@ public class PythonSemanticAnalyzer {
             String funcName = ((IdentifierNode) node.functionName).name;
             Symbol sym = symbolTable.resolve(funcName);
             if (sym == null) {
-                if (!funcName.equals("render_template") && !funcName.equals("redirect") && !funcName.equals("url_for") && !funcName.equals("len")) {
+                if (!funcName.equals("render_template") && !funcName.equals("redirect") && !funcName.equals("url_for") && !funcName.equals("len") && !funcName.equals("Flask")) {
                     reportError(node.getLineNumber(), "Call to undefined function '" + funcName + "'.");
                 }
             } else if (sym instanceof FunctionSymbol) {
@@ -210,9 +207,10 @@ public class PythonSemanticAnalyzer {
     private void visitIdentifier(IdentifierNode node) {
         Symbol sym = symbolTable.resolve(node.name);
         if (sym == null) {
-            if (!node.name.equals("request") && !node.name.equals("app") && !node.name.equals("__name__") && !node.name.equals("products")) {
+            if (!node.name.equals("request") && !node.name.equals("app") && !node.name.equals("__name__") && !node.name.equals("products") && !node.name.equals("Flask")) {
                 reportError(node.getLineNumber(), "Undefined variable '" + node.name + "'");
             }
         }
     }
 }
+

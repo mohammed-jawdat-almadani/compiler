@@ -6,13 +6,13 @@ import python.ast.ASTNode;
 import python.visitor.ASTBuilder;
 import python.semantic.PythonSemanticAnalyzer;
 import builder.CodeGeneratorVisitor;
-import python.symboltable.SymbolTable;
+import symboltable.SymbolTable;
 
 import java.io.IOException;
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
 public class ASTPython {
-    public static ASTNode ParseFile(String path, java.util.List<String> globalVarsOut) {
+    public static ASTNode ParseFile(String path, SymbolTable globalSymTab) {
         try {
             CharStream input = fromFileName(path);
             PythonLexer lexer = new PythonLexer(input);
@@ -25,24 +25,9 @@ public class ASTPython {
             ASTNode astNode = astBuilder.visit(tree);
             astNode.printTree("");
 
-            System.out.println("\n=== Symbol Table ===");
-            astBuilder.getSymbolTable().printSymbolTable();
-            
             System.out.println("\n=== Semantic Analysis ===");
-            PythonSemanticAnalyzer analyzer = new PythonSemanticAnalyzer();
+            PythonSemanticAnalyzer analyzer = new PythonSemanticAnalyzer(globalSymTab);
             analyzer.analyze(astNode);
-
-            // Add top-level variables to globalVarsOut
-            SymbolTable st = analyzer.getSymbolTable(); // Assuming we can get it, wait we can't easily.
-            // Let's just collect identifiers from Assignments at top level
-            for (ASTNode child : astNode.getChildren()) {
-                if (child instanceof python.ast.AssignmentNode) {
-                    python.ast.AssignmentNode assign = (python.ast.AssignmentNode) child;
-                    if (assign.target instanceof python.ast.IdentifierNode) {
-                        globalVarsOut.add(((python.ast.IdentifierNode) assign.target).name);
-                    }
-                }
-            }
 
             return astNode;
 

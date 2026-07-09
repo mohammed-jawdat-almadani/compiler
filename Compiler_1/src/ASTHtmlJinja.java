@@ -7,14 +7,14 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import semantic.SymbolTableVisitor;
 import semantic.JinjaSemanticAnalyzer;
+import symboltable.SymbolTable;
 
 import java.io.IOException;
-import java.util.List;
 
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
 public class ASTHtmlJinja {
-    public static void parseFile(String path, List<String> pythonGlobals) throws Exception {
+    public static void parseFile(String path, SymbolTable globalSymTab) throws Exception {
         try {
             CharStream input = fromFileName(path);
             HtmlJinjaLexer lexer = new HtmlJinjaLexer(input);
@@ -28,11 +28,9 @@ public class ASTHtmlJinja {
             System.out.println("============================== [ AST ] ==============================");
             System.out.println(ast);
 
-            System.out.println("============================== [ ST & Semantic ] ==============================");
-            JinjaSemanticAnalyzer analyzer = new JinjaSemanticAnalyzer();
-            analyzer.injectGlobals(pythonGlobals);
+            System.out.println("============================== [ Semantic ] ==============================");
+            JinjaSemanticAnalyzer analyzer = new JinjaSemanticAnalyzer(globalSymTab);
             analyzer.visit(ast);
-            analyzer.getSymbolTable().dump();
 
         } catch (IOException e) {
             e.printStackTrace();

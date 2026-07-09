@@ -1,4 +1,4 @@
-package python.symboltable;
+package symboltable;
 
 public interface Scope {
     public String getScopeName();
