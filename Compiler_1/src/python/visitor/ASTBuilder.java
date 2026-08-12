@@ -3,6 +3,7 @@ package python.visitor;
 import antlr.PythonParser;
 import antlr.PythonParserBaseVisitor;
 import python.ast.*;
+import python.ast.DictNode;
 import symboltable.*;
 
 
@@ -312,6 +313,21 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
     }
 
     @Override
+    public ASTNode visitDictSetAtom(PythonParser.DictSetAtomContext ctx) {
+        DictNode dict = new DictNode(ctx.getStart().getLine());
+        if (ctx.dict_set() != null) {
+            PythonParser.Dict_setContext dictCtx = ctx.dict_set();
+            // Assuming it's a dict where expressions come in pairs: key, value, key, value
+            for (int i = 0; i < dictCtx.expression().size() - 1; i += 2) {
+                ExpressionNode key = (ExpressionNode) visit(dictCtx.expression(i));
+                ExpressionNode val = (ExpressionNode) visit(dictCtx.expression(i+1));
+                dict.addEntry(key, val);
+            }
+        }
+        return dict;
+    }
+
+    @Override
     public ASTNode visitListAtom(PythonParser.ListAtomContext ctx) {
         List<ExpressionNode> elements = new ArrayList<>();
         if (ctx.expressions() != null) {
@@ -327,8 +343,16 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
         ASTNode func = visit(ctx.primary());
         List<ExpressionNode> args = new ArrayList<>();
         if (ctx.arguments() != null) {
-            for (PythonParser.ExpressionContext e : ctx.arguments().expression()) {
-                args.add((ExpressionNode) visit(e));
+            for (int i = 0; i < ctx.arguments().getChildCount(); i++) {
+                org.antlr.v4.runtime.tree.ParseTree child = ctx.arguments().getChild(i);
+                if (child instanceof PythonParser.ExpressionContext) {
+                    if (i >= 2 && ctx.arguments().getChild(i-1).getText().equals("=")) {
+                        String argName = ctx.arguments().getChild(i-2).getText();
+                        args.add(new KeywordArgumentNode(argName, (ExpressionNode) visit(child), ctx.getStart().getLine()));
+                    } else {
+                        args.add((ExpressionNode) visit(child));
+                    }
+                }
             }
         }
         return new FunctionCallNode(func, args, ctx.getStart().getLine());
@@ -371,7 +395,38 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
         PythonParser.Import_stmtContext innerCtx = ctx.import_stmt();
         if (innerCtx.FROM() != null) {
             String fromModule = innerCtx.dotted_name().getText();
-            java.util.Map<String, String> items = new java.util.HashMap<>();
+            java.util.Map<String, String> items = new java.util.LinkedHashMap<>();
+            if (innerCtx.import_from_targets() != null) {
+                PythonParser.Import_from_as_namesContext namesCtx = innerCtx.import_from_targets().import_from_as_names();
+                if (namesCtx != null) {
+                    for (int i = 0; i < namesCtx.name().size(); i++) {
+                        String originalName = namesCtx.name(i).getText();
+                        items.put(originalName, originalName);
+                        symbolTable.define(new Symbol(originalName, new SymbolTable.BuiltInTypeSymbol("import")));
+                    }
+                }
+            } else {
+                for (int i = 0; i < innerCtx.getChildCount(); i++) {
+                    org.antlr.v4.runtime.tree.ParseTree child = innerCtx.getChild(i);
+                    if (child.getClass().getSimpleName().equals("Import_from_targetsContext")) {
+                        PythonParser.Import_from_targetsContext tgts = (PythonParser.Import_from_targetsContext) child;
+                        if (tgts.import_from_as_names() != null) {
+                            for (int j = 0; j < tgts.import_from_as_names().name().size(); j++) {
+                                String originalName = tgts.import_from_as_names().name(j).getText();
+                                items.put(originalName, originalName);
+                                symbolTable.define(new Symbol(originalName, new SymbolTable.BuiltInTypeSymbol("import")));
+                            }
+                        }
+                    } else if (child.getClass().getSimpleName().equals("Import_from_as_namesContext")) {
+                        PythonParser.Import_from_as_namesContext namesCtx = (PythonParser.Import_from_as_namesContext) child;
+                        for (int j = 0; j < namesCtx.name().size(); j++) {
+                            String originalName = namesCtx.name(j).getText();
+                            items.put(originalName, originalName);
+                            symbolTable.define(new Symbol(originalName, new SymbolTable.BuiltInTypeSymbol("import")));
+                        }
+                    }
+                }
+            }
             return new FromImportNode(fromModule, items, ctx.getStart().getLine());
         } else {
             java.util.Map<String, String> modules = new java.util.LinkedHashMap<>();

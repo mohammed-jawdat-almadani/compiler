@@ -179,7 +179,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
                             ctx.start.getLine(),
                             ctx.start.getCharPositionInLine(),
                             property,
-                            valueNode.toString()
+                            val
                     ));
                 }
                 value = new CssDeclarationList(ctx.start.getLine(), ctx.start.getCharPositionInLine(), decls);

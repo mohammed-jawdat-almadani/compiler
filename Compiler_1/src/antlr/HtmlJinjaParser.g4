@@ -4,6 +4,16 @@ options {
     tokenVocab = HtmlJinjaLexer;
 }
 
+@parser::members {
+    private boolean isVoidElement(String tagName) {
+        String t = tagName.toLowerCase();
+        return t.equals("area") || t.equals("base") || t.equals("br") || t.equals("col") ||
+               t.equals("embed") || t.equals("hr") || t.equals("img") || t.equals("input") ||
+               t.equals("link") || t.equals("meta") || t.equals("param") || t.equals("source") ||
+               t.equals("track") || t.equals("wbr");
+    }
+}
+
 block_statement
     : block_open templateContent* block_close
     ;
@@ -37,8 +47,11 @@ scriptletOrSeaWs
 htmlElement
     : jinjaExpression
     | jinja_statement
-    | TAG_OPEN TAG_NAME htmlTagContent* (
-        TAG_CLOSE (htmlContent TAG_OPEN TAG_SLASH TAG_NAME TAG_CLOSE)?
+    | TAG_OPEN startName=TAG_NAME htmlTagContent* (
+        TAG_CLOSE (
+            { !isVoidElement($startName.text) }? htmlContent TAG_OPEN TAG_SLASH endName=TAG_NAME TAG_CLOSE 
+            { $startName.text.equalsIgnoreCase($endName.text) }?
+        )?
         | TAG_SLASH_CLOSE
     )
     | SCRIPTLET

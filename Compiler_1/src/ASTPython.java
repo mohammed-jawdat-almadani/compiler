@@ -5,7 +5,6 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import python.ast.ASTNode;
 import python.visitor.ASTBuilder;
 import python.semantic.PythonSemanticAnalyzer;
-import builder.CodeGeneratorVisitor;
 import symboltable.SymbolTable;
 
 import java.io.IOException;

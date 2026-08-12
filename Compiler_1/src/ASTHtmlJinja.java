@@ -14,7 +14,7 @@ import java.io.IOException;
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
 public class ASTHtmlJinja {
-    public static void parseFile(String path, SymbolTable globalSymTab) throws Exception {
+    public static Node parseFile(String path, SymbolTable globalSymTab) throws Exception {
         try {
             CharStream input = fromFileName(path);
             HtmlJinjaLexer lexer = new HtmlJinjaLexer(input);
@@ -31,9 +31,11 @@ public class ASTHtmlJinja {
             System.out.println("============================== [ Semantic ] ==============================");
             JinjaSemanticAnalyzer analyzer = new JinjaSemanticAnalyzer(globalSymTab);
             analyzer.visit(ast);
+            return ast;
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return null;
     }
 }

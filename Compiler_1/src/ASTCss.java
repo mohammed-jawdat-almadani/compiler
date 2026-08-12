@@ -15,9 +15,8 @@ import symboltable.SymbolTable;
 
 public class ASTCss {
 
-    public static void parseFile(String path, SymbolTable globalSymTab) throws Exception {
+    public static Node parseFile(String path, SymbolTable globalSymTab) throws Exception {
         try {
-
             CharStream input = fromFileName(path);
 
             cssLexer lexer = new cssLexer(input);
@@ -35,9 +34,11 @@ public class ASTCss {
             System.out.println("============================== [ Symbol Table ] ==============================");
             SymbolTableVisitor symVisitor = new SymbolTableVisitor(globalSymTab);
             symVisitor.visit(ast);
-            symVisitor.getSymbolTable().printSymbolTable();
+            // symVisitor.getSymbolTable().printSymbolTable(); // Optional print
+            return ast;
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
     }
 }
