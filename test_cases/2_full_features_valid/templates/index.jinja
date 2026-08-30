@@ -1,0 +1,35 @@
+{% extends "base.jinja" %}
+{% block title %}{{ store_name }} - {{ products|length }} products{% endblock %}
+
+{% block content %}
+{% set premium_limit = 1000 %}
+<h1>{{ store_name }}</h1>
+<p>{{ products|length }} products, {{ available|length }} in stock, inventory value {{ total|round(2) }} {{ currency }}</p>
+
+<table>
+  <tr><th>#</th><th>Name</th><th>Price</th><th>Tags</th><th>Status</th></tr>
+  {% for p in products %}
+  <tr class="{{ 'odd' if loop.index is odd else 'even' }}">
+    <td>{{ loop.index }}</td>
+    <td><a href="{{ url_for('product', product_id=p.id) }}">{{ p.name }}</a></td>
+    <td>{{ p.price }} {{ currency }}{% if p.price > premium_limit %} (premium){% endif %}</td>
+    <td>{{ p.tags|join(', ')|default('-', true) }}</td>
+    <td>
+      {% if p.stock == 0 %}
+        Sold out
+      {% elif p.stock < 10 %}
+        Only {{ p.stock }} left
+      {% else %}
+        In stock ({{ p.stock }})
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% if available|length == products|length %}
+<p>Everything is available.</p>
+{% else %}
+<p>{{ products|length - available|length }} product(s) sold out.</p>
+{% endif %}
+{% endblock %}

@@ -13,7 +13,21 @@ public class PythonSemanticAnalyzer {
     private int loopDepth = 0;
     private int functionDepth = 0;
 
-    public PythonSemanticAnalyzer(SymbolTable st) { this.symbolTable = st; this.errors = new ArrayList<>(); }
+    /** Names that Python (and Flask) provide without a definition in the source file. */
+    private static final String[] BUILTINS = {
+        "print", "len", "str", "int", "float", "bool", "list", "dict", "set", "tuple", "range", "enumerate",
+        "sorted", "reversed", "min", "max", "sum", "abs", "round", "isinstance", "type", "input", "open",
+        "zip", "map", "filter", "any", "all", "id", "hash", "iter", "next", "super", "object", "Exception",
+        "ValueError", "KeyError", "TypeError", "__name__", "True", "False", "None"
+    };
+
+    public PythonSemanticAnalyzer(SymbolTable st) {
+        this.symbolTable = st;
+        this.errors = new ArrayList<>();
+        for (String b : BUILTINS) {
+            if (symbolTable.resolve(b) == null) symbolTable.define(new Symbol(b, new SymbolTable.BuiltInTypeSymbol("builtin")));
+        }
+    }
 
     public List<String> getErrors() {
         return errors;
@@ -29,14 +43,6 @@ public class PythonSemanticAnalyzer {
 
     public void analyze(ASTNode root) {
         visit(root);
-        if (!errors.isEmpty()) {
-            System.err.println("=== Python Semantic Errors ===");
-            for (String err : errors) {
-                System.err.println(err);
-            }
-        } else {
-            System.out.println("=== Python Semantic Analysis Passed ===");
-        }
     }
 
     private void visit(ASTNode node) {
@@ -54,11 +60,27 @@ public class PythonSemanticAnalyzer {
         else if (node instanceof ReturnNode) visitReturn((ReturnNode) node);
         else if (node instanceof IdentifierNode) visitIdentifier((IdentifierNode) node);
         else if (node instanceof AugmentedAssignNode) visitAugmentedAssign((AugmentedAssignNode) node);
+        else if (node instanceof FromImportNode) visitFromImport((FromImportNode) node);
+        else if (node instanceof ImportNode) visitImport((ImportNode) node);
+        else if (node instanceof AttributeAccessNode) visit(((AttributeAccessNode) node).object);
         
         else {
             for (ASTNode child : node.getChildren()) {
                 visit(child);
             }
+        }
+    }
+
+    private void visitFromImport(FromImportNode node) {
+        for (String alias : node.importedItems.values()) {
+            symbolTable.define(new Symbol(alias, new SymbolTable.BuiltInTypeSymbol("import")));
+        }
+    }
+
+    private void visitImport(ImportNode node) {
+        for (String alias : node.modules.values()) {
+            String top = alias.contains(".") ? alias.substring(0, alias.indexOf('.')) : alias;
+            symbolTable.define(new Symbol(top, new SymbolTable.BuiltInTypeSymbol("module")));
         }
     }
 
@@ -177,7 +199,7 @@ public class PythonSemanticAnalyzer {
     }
 
     private void visitFunctionCall(FunctionCallNode node) {
-        visit(node.functionName);
+        if (!(node.functionName instanceof IdentifierNode)) visit(node.functionName);
         for (ExpressionNode arg : node.arguments) {
             visit(arg);
         }
@@ -186,9 +208,7 @@ public class PythonSemanticAnalyzer {
             String funcName = ((IdentifierNode) node.functionName).name;
             Symbol sym = symbolTable.resolve(funcName);
             if (sym == null) {
-                if (!funcName.equals("render_template") && !funcName.equals("redirect") && !funcName.equals("url_for") && !funcName.equals("len") && !funcName.equals("Flask")) {
-                    reportError(node.getLineNumber(), "Call to undefined function '" + funcName + "'.");
-                }
+                reportError(node.getLineNumber(), "Call to undefined function '" + funcName + "'.");
             } else if (sym instanceof FunctionSymbol) {
                 // Not enforcing parameter counts since we don't store them yet
             }
@@ -207,9 +227,7 @@ public class PythonSemanticAnalyzer {
     private void visitIdentifier(IdentifierNode node) {
         Symbol sym = symbolTable.resolve(node.name);
         if (sym == null) {
-            if (!node.name.equals("request") && !node.name.equals("app") && !node.name.equals("__name__") && !node.name.equals("products") && !node.name.equals("Flask")) {
-                reportError(node.getLineNumber(), "Undefined variable '" + node.name + "'");
-            }
+            reportError(node.getLineNumber(), "Undefined variable '" + node.name + "'");
         }
     }
 }

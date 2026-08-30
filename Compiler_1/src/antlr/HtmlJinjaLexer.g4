@@ -19,6 +19,7 @@ SEA_WS: (' ' | '\t' | '\r'? '\n')+;
 /*
  * Mode -> Tag, Script, Style, (Jinja blocks and Jinja Expression) => JinjaEXPR
  */
+DTD: '<!' .*? '>';
 TAG_OPEN: '<' -> pushMode(TAG);
 SCRIPT_OPEN: '<script' .*? '>' -> pushMode(SCRIPT);
 STYLE_OPEN: '<style' .*? '>' -> pushMode(STYLE);
@@ -112,6 +113,12 @@ JINJA_WHILE     : 'while';
 JINJA_ENDWHILE  : 'endwhile';
 JINJA_EXTENDS   : 'extends';
 
+JINJA_AND       : 'and';
+JINJA_OR        : 'or';
+JINJA_NOT       : 'not';
+JINJA_IS        : 'is';
+JINJA_NONE      : 'None' | 'none';
+JINJA_BOOL      : 'True' | 'true' | 'False' | 'false';
 JINJA_BLOCK     : 'block';
 JINJA_ENDBLOCK  : 'endblock';
 
@@ -141,6 +148,7 @@ JINJA_LSP  : '[';
 JINJA_RSP  : ']';
 JINJA_DOT : '.';
 JINJA_PIP: '|';
+JINJA_TILDE: '~';
 JINJA_COMA: ',';
 
 /*
@@ -150,6 +158,5 @@ JINJA_ID     : [a-zA-Z_] [a-zA-Z0-9_]*;
 JINJA_INT    : '-'? [0-9]+;
 JINJA_DOUBLE : '-'? [0-9]+ '.' [0-9]+;
 JINJA_STRING : '\'' (ESC | ~['\\])* '\'' | '"' (ESC | ~["\\])* '"';
-JINJA_BOOL   : 'true' | 'false';
 
 fragment ESC : '\\' [btnfr"'\\];

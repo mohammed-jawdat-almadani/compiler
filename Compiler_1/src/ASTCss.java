@@ -5,40 +5,40 @@ import builder.CssVisitor;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
+import output.CompilerReport;
 import semantic.SymbolTableVisitor;
+import symboltable.SymbolTable;
 
 import java.io.IOException;
 
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
-import symboltable.SymbolTable;
-
+/** Front end for CSS files: lexer -> parser -> AST -> symbol collection. */
 public class ASTCss {
 
     public static Node parseFile(String path, SymbolTable globalSymTab) throws Exception {
-        try {
-            CharStream input = fromFileName(path);
+        return parseFile(path, globalSymTab, new CompilerReport(), true);
+    }
 
-            cssLexer lexer = new cssLexer(input);
-            CommonTokenStream tokens = new CommonTokenStream(lexer);
-            cssParser parser = new cssParser(tokens);
+    public static Node parseFile(String path, SymbolTable globalSymTab, CompilerReport report, boolean printTree) throws IOException {
+        String fileName = new java.io.File(path).getName();
+        CharStream input = fromFileName(path);
+        cssLexer lexer = new cssLexer(input);
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(report.listenerFor(fileName));
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        cssParser parser = new cssParser(tokens);
+        parser.removeErrorListeners();
+        parser.addErrorListener(report.listenerFor(fileName));
 
-            ParseTree tree = parser.stylesheet();
-
-            CssVisitor visitor = new CssVisitor();
-            Node ast = (Node) visitor.visit(tree);
-
-            System.out.println("============================== [ CSS AST ] ==============================");
+        ParseTree tree = parser.stylesheet();
+        Node ast = (Node) new CssVisitor().visit(tree);
+        report.fileAnalyzed(fileName);
+        if (printTree) {
+            System.out.println("============================== [ CSS AST: " + fileName + " ] ==============================");
             System.out.println(ast);
-
-            System.out.println("============================== [ Symbol Table ] ==============================");
-            SymbolTableVisitor symVisitor = new SymbolTableVisitor(globalSymTab);
-            symVisitor.visit(ast);
-            // symVisitor.getSymbolTable().printSymbolTable(); // Optional print
-            return ast;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
         }
+        if (ast != null) new SymbolTableVisitor(globalSymTab).visit(ast);
+        return ast;
     }
 }

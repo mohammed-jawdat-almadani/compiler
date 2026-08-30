@@ -131,7 +131,7 @@ fragment INTEGER        : DEC_INTEGER;
 fragment DEC_INTEGER    : [1-9] ('_'? [0-9])* | '0'+ ('_'? '0')*;
 
 fragment FLOAT_NUMBER   : POINT_FLOAT | EXPONENT_FLOAT;
-fragment POINT_FLOAT    : [0-9]+? '.' [0-9]+ | [0-9]+ '.';
+fragment POINT_FLOAT    : [0-9]* '.' [0-9]+ | [0-9]+ '.';
 fragment EXPONENT_FLOAT : ([0-9]+ | POINT_FLOAT) [eE] [+-]? [0-9]+;
 fragment IMAG_NUMBER    : ([0-9]+ | FLOAT_NUMBER) [jJ];
 

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Products System{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+  <header class="header">
+    <div class="brand">
+      <div class="title">{{ shop_name }}</div>
+      <div class="subtitle">Flask + Jinja2 demo (styled with CSS)</div>
+    </div>
+    <nav class="nav">
+      <a class="pill" href="{{ url_for('index') }}">All Products</a>
+      <a class="pill" href="{{ url_for('add_product') }}">Add Product</a>
+    </nav>
+  </header>
+
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <div class="footer">Tip: Click "Edit" to change a product, or "Delete" to remove an item.</div>
+</div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

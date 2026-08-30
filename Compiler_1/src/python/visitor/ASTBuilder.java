@@ -458,6 +458,42 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
     }
 
     @Override
+    public ASTNode visitDisjunction(PythonParser.DisjunctionContext ctx) {
+        ASTNode left = visit(ctx.conjunction(0));
+        for (int i = 1; i < ctx.conjunction().size(); i++) {
+            left = new BinaryOpNode(left, "or", visit(ctx.conjunction(i)), ctx.getStart().getLine());
+        }
+        return left;
+    }
+
+    @Override
+    public ASTNode visitConjunction(PythonParser.ConjunctionContext ctx) {
+        ASTNode left = visit(ctx.inversion(0));
+        for (int i = 1; i < ctx.inversion().size(); i++) {
+            left = new BinaryOpNode(left, "and", visit(ctx.inversion(i)), ctx.getStart().getLine());
+        }
+        return left;
+    }
+
+    @Override
+    public ASTNode visitInversion(PythonParser.InversionContext ctx) {
+        if (ctx.inversion() != null) {
+            return new UnaryOpNode("not", visit(ctx.inversion()), ctx.getStart().getLine());
+        }
+        return visit(ctx.comparison());
+    }
+
+    @Override
+    public ASTNode visitUnaryExpr(PythonParser.UnaryExprContext ctx) {
+        return new UnaryOpNode(ctx.op.getText(), visit(ctx.factor()), ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitNoneAtom(PythonParser.NoneAtomContext ctx) {
+        return new LiteralNode("None", "none", ctx.getStart().getLine());
+    }
+
+    @Override
     public ASTNode visitTargets(PythonParser.TargetsContext ctx) {
         if (ctx.target().size() == 1) return visit(ctx.target(0));
         return visit(ctx.target(0));

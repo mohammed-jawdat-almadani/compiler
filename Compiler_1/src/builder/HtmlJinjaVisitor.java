@@ -17,6 +17,31 @@ import java.util.regex.Pattern;
 
 public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
+    /** Original source text of a rule (whitespace preserved, unlike getText()). */
+    private static String src(org.antlr.v4.runtime.ParserRuleContext ctx) {
+        if (ctx == null || ctx.start == null) return "";
+        int a = ctx.start.getStartIndex();
+        int b = ctx.stop != null ? ctx.stop.getStopIndex() : a;
+        if (b < a) return ctx.getText();
+        return ctx.start.getInputStream().getText(org.antlr.v4.runtime.misc.Interval.of(a, b)).trim();
+    }
+
+    /* ---------------- Top-level whitespace / comments ---------------- */
+    @Override
+    public Node visitHtmlMisc(HtmlJinjaParser.HtmlMiscContext ctx) {
+        if (ctx.SEA_WS() != null) return new HtmlChardata(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.SEA_WS().getText());
+        return visitChildren(ctx);
+    }
+
+    /* ---------------- Document type declaration ---------------- */
+    @Override
+    public Node visitTerminal(TerminalNode node) {
+        if (node.getSymbol().getType() == HtmlJinjaLexer.DTD) {
+            return new HtmlChardata(node.getSymbol().getLine(), node.getSymbol().getCharPositionInLine(), node.getText());
+        }
+        return null;
+    }
+
     /* ---------------- HTML Document ---------------- */
     @Override
     public Node visitHtmlDocument(HtmlJinjaParser.HtmlDocumentContext ctx) {
@@ -32,16 +57,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     @Override
     public Node visitHtmlElement(HtmlJinjaParser.HtmlElementContext ctx) {
         if (ctx.jinjaExpression() != null) {
-            String raw = ctx.getText();        // {{name}}
-            String inner = raw
-                    .replaceFirst("^\\{\\{", "")
-                    .replaceFirst("\\}\\}$", "")
-                    .trim();
-            return new JinjaExpression(
-                    ctx.start.getLine(),
-                    ctx.start.getCharPositionInLine(),
-                    inner          // name فقط
-            );
+            return visit(ctx.jinjaExpression());
         }
         if (ctx.jinja_statement() != null) return visit(ctx.jinja_statement());
         if (ctx.SCRIPTLET() != null) return new HtmlChardata(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.SCRIPTLET().getText());
@@ -92,7 +108,9 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
     @Override
     public Node visitScript(HtmlJinjaParser.ScriptContext ctx) {
-        return new Script(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.SCRIPT_BODY().getText());
+        Script sc = new Script(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.SCRIPT_BODY().getText());
+        sc.openTag = ctx.SCRIPT_OPEN().getText();
+        return sc;
     }
 
     @Override
@@ -113,11 +131,13 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
             Node cssAst = cssVisitor.visit(parser.stylesheet());
 
-            return new Style(
+            Style st = new Style(
                     ctx.start.getLine(),
                     ctx.start.getCharPositionInLine(),
                     cssAst
             );
+            st.rawCss = cssText;
+            return st;
 
         } catch (Exception e) {
             return new HtmlChardata(
@@ -226,7 +246,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     /* ---------------- Jinja Expressions ---------------- */
     @Override
     public Node visitJinjaExpression(HtmlJinjaParser.JinjaExpressionContext ctx) {
-        return new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.getText());
+        return new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), src(ctx.expression()));
     }
 
     /* ---------------- Jinja Statements ---------------- */
@@ -236,17 +256,13 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
                 ctx.start.getLine(),
                 ctx.start.getCharPositionInLine(),
                 ctx.JINJA_ID().getText(),
-                ctx.expression().getText()
+                src(ctx.expression())
         );
     }
 
     @Override
     public Node visitIf_statement(HtmlJinjaParser.If_statementContext ctx) {
-        String condText = "";
-        if (ctx.if_fragment() != null)
-            condText = ctx.if_fragment().getText().replaceAll("\\{\\%\\s*if\\s*", "")
-                    .replaceAll("\\s*\\%\\}", "").trim();
-
+        String condText = ctx.if_fragment() != null ? src(ctx.if_fragment().expression()) : "";
         JinjaExpression condition = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), condText);
 
         List<Node> body = new ArrayList<>();
@@ -255,15 +271,19 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
             if (n != null) body.add(n);
         }
 
+        // The grammar nests each elif/else inside the previous elif; flatten the chain here.
         List<ElifStatement> elifs = new ArrayList<>();
-        if (ctx.elif_statement() != null) {
-            Node n = visit(ctx.elif_statement());
-            if (n instanceof ElifStatement es) elifs.add(es);
-        }
-
         ElseStatement elseStmt = null;
-        if (ctx.else_statement() != null) {
-            Node n = visit(ctx.else_statement());
+        HtmlJinjaParser.Elif_statementContext elifCtx = ctx.elif_statement();
+        HtmlJinjaParser.Else_statementContext elseCtx = ctx.else_statement();
+        while (elifCtx != null) {
+            Node n = visit(elifCtx);
+            if (n instanceof ElifStatement es) elifs.add(es);
+            elseCtx = elifCtx.else_statement();
+            elifCtx = elifCtx.elif_statement();
+        }
+        if (elseCtx != null) {
+            Node n = visit(elseCtx);
             if (n instanceof ElseStatement es) elseStmt = es;
         }
 
@@ -273,10 +293,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     @Override
     public Node visitElif_statement(HtmlJinjaParser.Elif_statementContext ctx) {
         // استخدم النص الكامل من elif_fragment
-        String condText = "";
-        if (ctx.elif_fragment() != null)
-            condText = ctx.elif_fragment().getText().replaceAll("\\{\\%\\s*elif\\s*", "")
-                    .replaceAll("\\s*\\%\\}", "").trim();
+        String condText = ctx.elif_fragment() != null ? src(ctx.elif_fragment().expression()) : "";
 
         JinjaExpression condition = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), condText);
 
@@ -302,10 +319,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     @Override
     public Node visitWhile_statement(HtmlJinjaParser.While_statementContext ctx) {
         // استخدم النص الكامل من while_fragment
-        String condText = "";
-        if (ctx.while_fragment() != null)
-            condText = ctx.while_fragment().getText().replaceAll("\\{\\%\\s*while\\s*", "")
-                    .replaceAll("\\s*\\%\\}", "").trim();
+        String condText = ctx.while_fragment() != null ? src(ctx.while_fragment().expression()) : "";
 
         JinjaExpression condition = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), condText);
 
@@ -326,7 +340,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
         String iterableText = "";
         if (ctx.for_fragment() != null && ctx.for_fragment().expression() != null) {
-            iterableText = ctx.for_fragment().expression().getText();
+            iterableText = src(ctx.for_fragment().expression());
         }
 
         JinjaExpression iterable = new JinjaExpression(ctx.start.getLine(), ctx.start.getCharPositionInLine(), iterableText);

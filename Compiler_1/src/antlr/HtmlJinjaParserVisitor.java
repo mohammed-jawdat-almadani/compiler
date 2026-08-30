@@ -1,4 +1,4 @@
-// Generated from src//antlr//HtmlJinjaParser.g4 by ANTLR 4.13.2
+// Generated from antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
 package antlr;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -102,6 +102,13 @@ public interface HtmlJinjaParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitEqInt(HtmlJinjaParser.EqIntContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code eqOr}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqOr(HtmlJinjaParser.EqOrContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code eqFilter}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
@@ -109,19 +116,26 @@ public interface HtmlJinjaParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitEqFilter(HtmlJinjaParser.EqFilterContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code eqPar}
+	 * Visit a parse tree produced by the {@code eqNot}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitEqPar(HtmlJinjaParser.EqParContext ctx);
+	T visitEqNot(HtmlJinjaParser.EqNotContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code eqAdd}
+	 * Visit a parse tree produced by the {@code eqNeg}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitEqAdd(HtmlJinjaParser.EqAddContext ctx);
+	T visitEqNeg(HtmlJinjaParser.EqNegContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code eqBool}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqBool(HtmlJinjaParser.EqBoolContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code eqIndex}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
@@ -137,12 +151,12 @@ public interface HtmlJinjaParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitEqId(HtmlJinjaParser.EqIdContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code eqMul}
+	 * Visit a parse tree produced by the {@code eqAnd}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitEqMul(HtmlJinjaParser.EqMulContext ctx);
+	T visitEqAnd(HtmlJinjaParser.EqAndContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code eqString}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
@@ -158,12 +172,12 @@ public interface HtmlJinjaParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitEqAttr(HtmlJinjaParser.EqAttrContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code eqCompare}
+	 * Visit a parse tree produced by the {@code eqTernary}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitEqCompare(HtmlJinjaParser.EqCompareContext ctx);
+	T visitEqTernary(HtmlJinjaParser.EqTernaryContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code eqDouble}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
@@ -171,6 +185,89 @@ public interface HtmlJinjaParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitEqDouble(HtmlJinjaParser.EqDoubleContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code eqNone}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqNone(HtmlJinjaParser.EqNoneContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code eqPar}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqPar(HtmlJinjaParser.EqParContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code eqAdd}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqAdd(HtmlJinjaParser.EqAddContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code eqIs}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqIs(HtmlJinjaParser.EqIsContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code eqMul}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqMul(HtmlJinjaParser.EqMulContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code eqConcat}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqConcat(HtmlJinjaParser.EqConcatContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code eqCall}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqCall(HtmlJinjaParser.EqCallContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code eqCompare}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqCompare(HtmlJinjaParser.EqCompareContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code eqIn}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEqIn(HtmlJinjaParser.EqInContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link HtmlJinjaParser#arguments}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArguments(HtmlJinjaParser.ArgumentsContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code kwArgument}
+	 * labeled alternative in {@link HtmlJinjaParser#argument}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitKwArgument(HtmlJinjaParser.KwArgumentContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code posArgument}
+	 * labeled alternative in {@link HtmlJinjaParser#argument}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPosArgument(HtmlJinjaParser.PosArgumentContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link HtmlJinjaParser#jinja_statement}.
 	 * @param ctx the parse tree

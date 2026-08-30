@@ -5,37 +5,57 @@ import builder.ASTBuilder;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
-import semantic.SymbolTableVisitor;
+import output.CompilerReport;
 import semantic.JinjaSemanticAnalyzer;
 import symboltable.SymbolTable;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
+/** Front end for HTML/Jinja templates: lexer -> parser -> AST -> semantic analysis. */
 public class ASTHtmlJinja {
+
+    /** Backwards-compatible entry point. */
     public static Node parseFile(String path, SymbolTable globalSymTab) throws Exception {
-        try {
-            CharStream input = fromFileName(path);
-            HtmlJinjaLexer lexer = new HtmlJinjaLexer(input);
-            CommonTokenStream tokens = new CommonTokenStream(lexer);
-            HtmlJinjaParser parser = new HtmlJinjaParser(tokens);
+        return parseFile(path, globalSymTab, new CompilerReport(), true);
+    }
 
-            ParseTree tree = parser.htmlDocument();
-            ASTBuilder builder = new ASTBuilder();
-            Node ast = builder.buildHtml(tree);
+    /** Parses the template only (no semantic check) so the context can be computed first. */
+    public static Node parseOnly(String path, CompilerReport report, boolean printTree) throws IOException {
+        String fileName = new java.io.File(path).getName();
+        CharStream input = fromFileName(path);
+        HtmlJinjaLexer lexer = new HtmlJinjaLexer(input);
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(report.listenerFor(fileName));
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        HtmlJinjaParser parser = new HtmlJinjaParser(tokens);
+        parser.removeErrorListeners();
+        parser.addErrorListener(report.listenerFor(fileName));
 
-            System.out.println("============================== [ AST ] ==============================");
+        ParseTree tree = parser.htmlDocument();
+        Node ast = new ASTBuilder().buildHtml(tree);
+        report.fileAnalyzed(fileName);
+        if (printTree) {
+            System.out.println("============================== [ AST: " + fileName + " ] ==============================");
             System.out.println(ast);
-
-            System.out.println("============================== [ Semantic ] ==============================");
-            JinjaSemanticAnalyzer analyzer = new JinjaSemanticAnalyzer(globalSymTab);
-            analyzer.visit(ast);
-            return ast;
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-        return null;
+        return ast;
+    }
+
+    /** Runs the Jinja semantic analysis with the variables the Python side passes to this template. */
+    public static void analyze(Node ast, String fileName, SymbolTable globalSymTab, Set<String> contextVars, CompilerReport report) {
+        if (ast == null) return;
+        JinjaSemanticAnalyzer analyzer = new JinjaSemanticAnalyzer(globalSymTab, contextVars);
+        analyzer.visit(ast);
+        for (String err : analyzer.getErrors()) report.semanticError(fileName, err);
+    }
+
+    public static Node parseFile(String path, SymbolTable globalSymTab, CompilerReport report, boolean printTree) throws IOException {
+        Node ast = parseOnly(path, report, printTree);
+        analyze(ast, new java.io.File(path).getName(), globalSymTab, Collections.emptySet(), report);
+        return ast;
     }
 }

@@ -1,82 +1,299 @@
+import ast.Node;
+import output.AstJsonSerializer;
+import output.CompilerReport;
+import python.ast.ASTNode;
+import runtime.JinjaRenderer;
+import runtime.PythonContextEvaluator;
+import runtime.PythonContextEvaluator.RenderCall;
 import symboltable.SymbolTable;
-import generator.PythonCodeGenerator;
-import generator.HtmlCodeGenerator;
+
 import java.io.File;
-import java.io.FileWriter;
-import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.util.*;
 
+/**
+ * Flask + Jinja translator.
+ *
+ * Input  (project folder):  app.py [+ other .py modules], templates/*.jinja, static/style.css, static/script.js
+ * Output (output/):         one generated .html per rendered template + app.py, style.css, script.js copied as-is
+ *         (compiler_output/): ast_python.json, ast_jinja.json, semantic_report.txt, generation_log.txt
+ *
+ * Pipeline:  Python -> parser -> AST -> semantic analysis -> evaluator (context data)
+ *            Jinja  -> parser -> AST -> semantic analysis -> renderer (variables substituted) -> HTML
+ *
+ * Usage: java Main [projectDir] [outputRoot] [--verbose] [--force]
+ *   projectDir  folder with app.py, templates/, static/           (default: ../PROJECT1)
+ *   outputRoot  where output/ and compiler_output/ are created   (default: parent of projectDir)
+ *   --verbose   print the ASTs and the symbol table to the console
+ *   --force     generate HTML even if semantic errors were found
+ */
 public class Main {
+
     public static void main(String[] args) {
+        String projectArg = null, outputArg = null;
+        boolean verbose = false, force = false;
+        for (String a : args) {
+            if (a.equals("--verbose")) verbose = true;
+            else if (a.equals("--force")) force = true;
+            else if (projectArg == null) projectArg = a;
+            else outputArg = a;
+        }
+        Path project = Paths.get(projectArg != null ? projectArg : "../PROJECT1").toAbsolutePath().normalize();
+        Path outputRoot = outputArg != null ? Paths.get(outputArg).toAbsolutePath().normalize()
+                : (project.getParent() != null ? project.getParent() : project);
+
         try {
-             SymbolTable globalSymTab = new SymbolTable();
-             
-             System.out.println("=== Parsing Python Files ===");
-             python.ast.ASTNode pythonRoot = ASTPython.ParseFile("../PROJECT1/app.py", globalSymTab);
-             python.ast.ASTNode dataRoot = ASTPython.ParseFile("../PROJECT1/data.py", globalSymTab);
-             
-             System.out.println("\n=== Parsing HTML Files ===");
-             Map<String, ast.Node> htmlTrees = new HashMap<>();
-             htmlTrees.put("add_product.html", ASTHtmlJinja.parseFile("../PROJECT1/templates/add_product.html", globalSymTab));
-             htmlTrees.put("base.html", ASTHtmlJinja.parseFile("../PROJECT1/templates/base.html", globalSymTab));
-             htmlTrees.put("product_details.html", ASTHtmlJinja.parseFile("../PROJECT1/templates/product_details.html", globalSymTab));
-             htmlTrees.put("products.html", ASTHtmlJinja.parseFile("../PROJECT1/templates/products.html", globalSymTab));
-             
-             System.out.println("\n=== Parsing CSS Files ===");
-             ASTCss.parseFile("../PROJECT1/static/style.css", globalSymTab);
-             
-             System.out.println("\n=== Python AST ===");
-             System.out.println(pythonRoot);
-
-             System.out.println("\n=== Code Generation ===");
-             
-             File outDir = new File("out/generated_app");
-             if (!outDir.exists()) outDir.mkdirs();
-             
-             File templatesDir = new File(outDir, "templates");
-             if (!templatesDir.exists()) templatesDir.mkdirs();
-             
-             // Copy static directory
-             System.out.println("\n=== Copying Static Assets ===");
-             Process p = Runtime.getRuntime().exec("cmd /c xcopy /s /y ..\\PROJECT1\\static out\\generated_app\\static\\");
-             p.waitFor();
-
-             // Python Generation
-             PythonCodeGenerator pyGen = new PythonCodeGenerator();
-             pyGen.generate(pythonRoot);
-             String generatedPy = pyGen.getGeneratedCode();
-             try (PrintWriter out = new PrintWriter(new FileWriter(new File(outDir, "app.py")))) {
-                 out.println(generatedPy);
-             }
-             System.out.println("Generated app.py successfully.");
-             
-             PythonCodeGenerator dataGen = new PythonCodeGenerator();
-             dataGen.generate(dataRoot);
-             String generatedData = dataGen.getGeneratedCode();
-             try (PrintWriter out = new PrintWriter(new FileWriter(new File(outDir, "data.py")))) {
-                 out.println(generatedData);
-             }
-             System.out.println("Generated data.py successfully.");
-             
-             // HTML Generation
-             for (Map.Entry<String, ast.Node> entry : htmlTrees.entrySet()) {
-                 HtmlCodeGenerator htmlGen = new HtmlCodeGenerator();
-                 htmlGen.generate(entry.getValue());
-                 String generatedHtml = htmlGen.getGeneratedCode();
-                 try (PrintWriter out = new PrintWriter(new FileWriter(new File(templatesDir, entry.getKey())))) {
-                     out.println(generatedHtml);
-                 }
-                 System.out.println("Generated " + entry.getKey() + " successfully.");
-             }
-             
-             System.out.println("\nCode generation completed. Output is in Compiler_1/out/generated_app/");
-             
-             System.out.println("\n=== Final Symbol Table ===");
-             globalSymTab.printSymbolTable();
-             
+            int exit = compile(project, outputRoot, verbose, force);
+            System.exit(exit);
         } catch (Exception e) {
             e.printStackTrace();
+            System.exit(2);
         }
+    }
+
+    public static int compile(Path project, Path outputRoot, boolean verbose, boolean force) throws IOException {
+        CompilerReport report = new CompilerReport();
+        SymbolTable globalSymTab = new SymbolTable();
+        Path outputDir = outputRoot.resolve("output");
+        Path compilerOutputDir = outputRoot.resolve("compiler_output");
+        Files.createDirectories(outputDir);
+        Files.createDirectories(compilerOutputDir);
+
+        report.log("Project folder : " + project);
+        report.log("Output folder  : " + outputDir);
+        report.log("Reports folder : " + compilerOutputDir);
+
+        /* ---------------- 1. Discover input files ---------------- */
+        Path appPy = project.resolve("app.py");
+        if (!Files.exists(appPy)) {
+            report.syntaxError("app.py", "not found in " + project);
+            finish(report, compilerOutputDir);
+            return 1;
+        }
+        List<Path> pythonFiles = new ArrayList<>();
+        try (DirectoryStream<Path> ds = Files.newDirectoryStream(project, "*.py")) { for (Path p : ds) pythonFiles.add(p); }
+        pythonFiles.sort(Comparator.comparing(p -> p.getFileName().toString()));
+
+        List<Path> templateFiles = new ArrayList<>();
+        Path templatesDir = project.resolve("templates");
+        if (Files.isDirectory(templatesDir)) {
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(templatesDir, "*.{jinja,jinja2,html,htm}")) { for (Path p : ds) templateFiles.add(p); }
+        }
+        templateFiles.sort(Comparator.comparing(p -> p.getFileName().toString()));
+
+        Path staticDir = project.resolve("static");
+        List<Path> cssFiles = new ArrayList<>();
+        if (Files.isDirectory(staticDir)) {
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(staticDir, "*.css")) { for (Path p : ds) cssFiles.add(p); }
+        }
+        if (Files.exists(project.resolve("style.css"))) cssFiles.add(project.resolve("style.css"));
+
+        report.log("Python files   : " + names(pythonFiles));
+        report.log("Templates      : " + names(templateFiles));
+        report.log("CSS files      : " + names(cssFiles));
+
+        /* ---------------- 2. Python: parse + semantic analysis ---------------- */
+        report.log("");
+        report.log("=== Phase 1: Python (Flask) parsing and semantic analysis ===");
+        Map<String, ASTNode> pythonAsts = new LinkedHashMap<>();
+        // parse app.py last so that imported modules (data.py) are already in the symbol table
+        List<Path> ordered = new ArrayList<>(pythonFiles);
+        ordered.remove(appPy); ordered.add(appPy);
+        for (Path p : ordered) {
+            String module = stripExt(p.getFileName().toString());
+            ASTNode ast = ASTPython.parseFile(p.toString(), globalSymTab, report, verbose);
+            pythonAsts.put(module, ast);
+            report.log("parsed " + p.getFileName() + (ast != null ? "" : " (failed)"));
+        }
+
+        /* ---------------- 3. Jinja: parse ---------------- */
+        report.log("");
+        report.log("=== Phase 2: Jinja template parsing ===");
+        Map<String, Node> templateAsts = new LinkedHashMap<>();
+        for (Path t : templateFiles) {
+            String name = t.getFileName().toString();
+            try {
+                Node ast = ASTHtmlJinja.parseOnly(t.toString(), report, verbose);
+                templateAsts.put(name, ast);
+                report.log("parsed " + name);
+            } catch (IOException e) {
+                report.syntaxError(name, "cannot read file: " + e.getMessage());
+            }
+        }
+
+        /* ---------------- 4. CSS: parse ---------------- */
+        for (Path c : cssFiles) {
+            try {
+                ASTCss.parseFile(c.toString(), globalSymTab, report, verbose);
+                report.log("parsed " + c.getFileName());
+            } catch (IOException e) {
+                report.syntaxError(c.getFileName().toString(), "cannot read file: " + e.getMessage());
+            }
+        }
+
+        /* ---------------- 5. Evaluate Python -> context data ---------------- */
+        report.log("");
+        report.log("=== Phase 3: Evaluating Python data and render_template() calls ===");
+        List<String> evalLog = new ArrayList<>();
+        PythonContextEvaluator evaluator = new PythonContextEvaluator(pythonAsts, evalLog);
+        if (pythonAsts.get("app") != null) {
+            try { evaluator.run("app"); }
+            catch (RuntimeException e) { report.semanticError("app.py", "evaluation failed: " + e.getMessage()); }
+        }
+        for (String l : evalLog) report.log("  " + l);
+        for (Map.Entry<String, String> r : evaluator.getRoutes().entrySet()) report.log("  route " + r.getValue() + " -> " + r.getKey() + "()");
+
+        // template name -> variables provided by Python
+        Map<String, Set<String>> contextVars = new LinkedHashMap<>();
+        Set<String> allVars = new LinkedHashSet<>();
+        for (RenderCall rc : evaluator.getRenderCalls()) {
+            contextVars.computeIfAbsent(rc.template, k -> new LinkedHashSet<>()).addAll(rc.context.keySet());
+            allVars.addAll(rc.context.keySet());
+        }
+
+        /* ---------------- 6. Jinja: semantic analysis with the real context ---------------- */
+        report.log("");
+        report.log("=== Phase 4: Jinja semantic analysis ===");
+        for (Map.Entry<String, Node> e : templateAsts.entrySet()) {
+            String name = e.getKey();
+            Set<String> vars = contextVars.get(name);
+            if (vars == null) {
+                // base/partial templates are never rendered directly: check them against everything any page receives
+                vars = allVars;
+                report.log("  " + name + " is not rendered directly (layout/partial); checked against " + vars);
+            } else {
+                report.log("  " + name + " context: " + vars);
+            }
+            ASTHtmlJinja.analyze(e.getValue(), name, globalSymTab, vars, report);
+        }
+        for (RenderCall rc : evaluator.getRenderCalls()) {
+            if (!templateAsts.containsKey(rc.template)) report.semanticError("app.py", rc.endpoint + "() renders '" + rc.template + "' but that template does not exist in templates/");
+        }
+        if (verbose) globalSymTab.printSymbolTable();
+
+        /* ---------------- 7. Analysis outputs ---------------- */
+        writeJson(compilerOutputDir.resolve("ast_python.json"), pythonAsts, report);
+        writeJson(compilerOutputDir.resolve("ast_jinja.json"), templateAsts, report);
+
+        report.log("");
+        report.log("Syntax errors: " + report.getSyntaxErrors().size() + ", semantic errors: " + report.getSemanticErrors().size());
+
+        boolean canGenerate = report.getSyntaxErrors().isEmpty() && (report.getSemanticErrors().isEmpty() || force);
+        if (!canGenerate) {
+            report.log("Code generation skipped because of errors (see semantic_report.txt)." + (report.getSyntaxErrors().isEmpty() ? " Use --force to generate anyway." : ""));
+            finish(report, compilerOutputDir);
+            return 1;
+        }
+        if (!report.getSemanticErrors().isEmpty()) report.log("--force: generating despite semantic errors");
+
+        /* ---------------- 8. Generation: render templates with the context data ---------------- */
+        report.log("");
+        report.log("=== Phase 5: Code generation (Jinja AST + context data -> HTML) ===");
+        List<String> renderLog = new ArrayList<>();
+        JinjaRenderer renderer = new JinjaRenderer(templateAsts, renderLog);
+
+        // url_for(endpoint, **values): static files are copied next to the pages; pages link to the generated html
+        Map<String, String> endpointToPage = new LinkedHashMap<>();
+        for (RenderCall rc : evaluator.getRenderCalls()) endpointToPage.put(rc.endpoint, htmlName(rc.template));
+        Map<String, String> routes = evaluator.getRoutes();
+        renderer.registerFunction("url_for", fargs -> {
+            List<Object> a = new ArrayList<>(fargs);
+            Map<String, Object> kw = !a.isEmpty() && a.get(a.size() - 1) instanceof Map ? (Map<String, Object>) a.remove(a.size() - 1) : new LinkedHashMap<>();
+            String endpoint = a.isEmpty() ? "" : String.valueOf(a.get(0));
+            if (endpoint.equals("static")) return String.valueOf(kw.getOrDefault("filename", ""));
+            if (endpointToPage.containsKey(endpoint)) {
+                StringBuilder sb = new StringBuilder(endpointToPage.get(endpoint));
+                boolean first = true;
+                for (Map.Entry<String, Object> e : kw.entrySet()) { sb.append(first ? '?' : '&').append(e.getKey()).append('=').append(e.getValue()); first = false; }
+                return sb.toString();
+            }
+            String path = routes.getOrDefault(endpoint, "/" + endpoint);
+            for (Map.Entry<String, Object> e : kw.entrySet()) path = path.replaceAll("<[^>]*:" + e.getKey() + ">|<" + e.getKey() + ">", String.valueOf(e.getValue()));
+            return path;
+        });
+
+        int generated = 0;
+        for (RenderCall rc : evaluator.getRenderCalls()) {
+            String outName = htmlName(rc.template);
+            report.log("rendering " + rc.template + " -> " + outName + "   [context: " + describe(rc.context) + "]");
+            renderLog.clear();
+            try {
+                String html = renderer.render(rc.template, rc.context);
+                Files.write(outputDir.resolve(outName), html.getBytes(StandardCharsets.UTF_8));
+                for (String l : renderLog) report.log(l);
+                report.log("  wrote " + outName + " (" + html.length() + " chars)");
+                generated++;
+            } catch (RuntimeException e) {
+                for (String l : renderLog) report.log(l);
+                report.semanticError(rc.template, "rendering failed: " + e.getMessage());
+            }
+        }
+        for (String w : renderer.getWarnings()) report.warning("generation", w);
+
+        /* ---------------- 9. Copy the supporting files untouched ---------------- */
+        report.log("");
+        report.log("=== Phase 6: Copying supporting files (not processed) ===");
+        for (Path p : pythonFiles) copy(p, outputDir.resolve(p.getFileName().toString()), report);
+        if (Files.isDirectory(staticDir)) copyTree(staticDir, outputDir, report);
+        for (String extra : new String[] { "style.css", "script.js" }) {
+            Path src = project.resolve(extra);
+            if (Files.exists(src) && !Files.exists(outputDir.resolve(extra))) copy(src, outputDir.resolve(extra), report);
+        }
+
+        report.log("");
+        report.log("Done: " + generated + " page(s) generated in " + outputDir);
+        finish(report, compilerOutputDir);
+        return report.hasErrors() ? 1 : 0;
+    }
+
+    /* ------------------------------------------------------------------ */
+
+    private static void finish(CompilerReport report, Path compilerOutputDir) throws IOException {
+        report.writeSemanticReport(compilerOutputDir.resolve("semantic_report.txt"));
+        report.writeGenerationLog(compilerOutputDir.resolve("generation_log.txt"));
+        System.out.println("\nReports written to " + compilerOutputDir);
+    }
+
+    private static void writeJson(Path path, Map<String, ?> asts, CompilerReport report) throws IOException {
+        String json = new AstJsonSerializer().toJson(asts);
+        Files.write(path, json.getBytes(StandardCharsets.UTF_8));
+        report.log("wrote " + path.getFileName() + " (" + json.length() + " chars)");
+    }
+
+    private static void copy(Path src, Path dst, CompilerReport report) throws IOException {
+        Files.createDirectories(dst.getParent());
+        Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
+        report.log("copied " + src.getFileName() + " -> " + dst.getFileName());
+    }
+
+    private static void copyTree(Path srcDir, Path dstDir, CompilerReport report) throws IOException {
+        try (java.util.stream.Stream<Path> s = Files.walk(srcDir)) {
+            for (Path p : (Iterable<Path>) s::iterator) {
+                if (Files.isDirectory(p)) continue;
+                Path rel = srcDir.relativize(p);
+                Path dst = dstDir.resolve(rel.toString());
+                Files.createDirectories(dst.getParent());
+                Files.copy(p, dst, StandardCopyOption.REPLACE_EXISTING);
+                String r = rel.toString().replace(File.separatorChar, '/');
+                report.log("copied static/" + r + " -> " + r);
+            }
+        }
+    }
+
+    private static String htmlName(String template) { return stripExt(template) + ".html"; }
+    private static String stripExt(String name) { int i = name.lastIndexOf('.'); return i > 0 ? name.substring(0, i) : name; }
+    private static List<String> names(List<Path> ps) { List<String> out = new ArrayList<>(); for (Path p : ps) out.add(p.getFileName().toString()); return out; }
+
+    private static String describe(Map<String, Object> ctx) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, Object> e : ctx.entrySet()) {
+            if (sb.length() > 0) sb.append(", ");
+            Object v = e.getValue();
+            String desc = v instanceof List ? "list[" + ((List<?>) v).size() + "]" : v instanceof Map ? "dict" + ((Map<?, ?>) v).keySet() : PythonContextEvaluator.stringify(v);
+            sb.append(e.getKey()).append('=').append(desc);
+        }
+        return sb.toString();
     }
 }
