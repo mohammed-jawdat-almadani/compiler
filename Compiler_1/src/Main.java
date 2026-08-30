@@ -31,6 +31,16 @@ import java.util.*;
  */
 public class Main {
 
+    /** Everything a caller (the test scripts, DevServer) may need after a compilation. */
+    public static class CompileResult {
+        public int exitCode;
+        public CompilerReport report;
+        public PythonContextEvaluator evaluator;
+        public Map<String, RenderCall> pages = new LinkedHashMap<>();   // generated page name -> the call that produced it
+        public Map<String, String> endpointToPage = new LinkedHashMap<>(); // endpoint -> unsuffixed page name
+        public Map<String, String> endpointToTemplate = new LinkedHashMap<>(); // endpoint -> template it renders
+    }
+
     public static void main(String[] args) {
         String projectArg = null, outputArg = null;
         boolean verbose = false, force = false;
@@ -45,7 +55,7 @@ public class Main {
                 : (project.getParent() != null ? project.getParent() : project);
 
         try {
-            int exit = compile(project, outputRoot, verbose, force);
+            int exit = compile(project, outputRoot, verbose, force).exitCode;
             System.exit(exit);
         } catch (Exception e) {
             e.printStackTrace();
@@ -53,8 +63,10 @@ public class Main {
         }
     }
 
-    public static int compile(Path project, Path outputRoot, boolean verbose, boolean force) throws IOException {
+    public static CompileResult compile(Path project, Path outputRoot, boolean verbose, boolean force) throws IOException {
+        CompileResult result = new CompileResult();
         CompilerReport report = new CompilerReport();
+        result.report = report;
         SymbolTable globalSymTab = new SymbolTable();
         Path outputDir = outputRoot.resolve("output");
         Path compilerOutputDir = outputRoot.resolve("compiler_output");
@@ -70,7 +82,8 @@ public class Main {
         if (!Files.exists(appPy)) {
             report.syntaxError("app.py", "not found in " + project);
             finish(report, compilerOutputDir);
-            return 1;
+            result.exitCode = 1;
+            return result;
         }
         List<Path> pythonFiles = new ArrayList<>();
         try (DirectoryStream<Path> ds = Files.newDirectoryStream(project, "*.py")) { for (Path p : ds) pythonFiles.add(p); }
@@ -138,6 +151,7 @@ public class Main {
         report.log("=== Phase 3: Evaluating Python data and render_template() calls ===");
         List<String> evalLog = new ArrayList<>();
         PythonContextEvaluator evaluator = new PythonContextEvaluator(pythonAsts, evalLog);
+        result.evaluator = evaluator;
         if (pythonAsts.get("app") != null) {
             try { evaluator.run("app"); }
             catch (RuntimeException e) { report.semanticError("app.py", "evaluation failed: " + e.getMessage()); }
@@ -184,7 +198,8 @@ public class Main {
         if (!canGenerate) {
             report.log("Code generation skipped because of errors (see semantic_report.txt)." + (report.getSyntaxErrors().isEmpty() ? " Use --force to generate anyway." : ""));
             finish(report, compilerOutputDir);
-            return 1;
+            result.exitCode = 1;
+            return result;
         }
         if (!report.getSemanticErrors().isEmpty()) report.log("--force: generating despite semantic errors");
 
@@ -194,37 +209,44 @@ public class Main {
         List<String> renderLog = new ArrayList<>();
         JinjaRenderer renderer = new JinjaRenderer(templateAsts, renderLog);
 
-        // url_for(endpoint, **values): static files are copied next to the pages; pages link to the generated html
-        Map<String, String> endpointToPage = new LinkedHashMap<>();
-        for (RenderCall rc : evaluator.getRenderCalls()) endpointToPage.put(rc.endpoint, htmlName(rc.template));
+        // url_for(endpoint, **values): static files are copied next to the pages; pages link to the generated html.
+        // A route with a parameter has one page per value: edit_product_1.html, edit_product_2.html, ...
+        Map<String, String> endpointToTemplate = new LinkedHashMap<>();
+        for (RenderCall rc : evaluator.getRenderCalls()) endpointToTemplate.putIfAbsent(rc.endpoint, rc.template);
+        for (Map.Entry<String, String> e : endpointToTemplate.entrySet()) result.endpointToPage.put(e.getKey(), htmlName(e.getValue()));
+        result.endpointToTemplate.putAll(endpointToTemplate);
         Map<String, String> routes = evaluator.getRoutes();
         renderer.registerFunction("url_for", fargs -> {
             List<Object> a = new ArrayList<>(fargs);
             Map<String, Object> kw = !a.isEmpty() && a.get(a.size() - 1) instanceof Map ? (Map<String, Object>) a.remove(a.size() - 1) : new LinkedHashMap<>();
             String endpoint = a.isEmpty() ? "" : String.valueOf(a.get(0));
             if (endpoint.equals("static")) return String.valueOf(kw.getOrDefault("filename", ""));
-            if (endpointToPage.containsKey(endpoint)) {
-                StringBuilder sb = new StringBuilder(endpointToPage.get(endpoint));
-                boolean first = true;
-                for (Map.Entry<String, Object> e : kw.entrySet()) { sb.append(first ? '?' : '&').append(e.getKey()).append('=').append(e.getValue()); first = false; }
-                return sb.toString();
-            }
+            if (endpointToTemplate.containsKey(endpoint)) return pageName(endpointToTemplate.get(endpoint), kw);
             String path = routes.getOrDefault(endpoint, "/" + endpoint);
             for (Map.Entry<String, Object> e : kw.entrySet()) path = path.replaceAll("<[^>]*:" + e.getKey() + ">|<" + e.getKey() + ">", String.valueOf(e.getValue()));
             return path;
         });
 
         int generated = 0;
+        Set<String> unsuffixedWritten = new HashSet<>();
         for (RenderCall rc : evaluator.getRenderCalls()) {
-            String outName = htmlName(rc.template);
+            String outName = pageName(rc.template, rc.sampleParams);
             report.log("rendering " + rc.template + " -> " + outName + "   [context: " + describe(rc.context) + "]");
             renderLog.clear();
             try {
                 String html = renderer.render(rc.template, rc.context);
                 Files.write(outputDir.resolve(outName), html.getBytes(StandardCharsets.UTF_8));
+                result.pages.put(outName, rc);
                 for (String l : renderLog) report.log(l);
                 report.log("  wrote " + outName + " (" + html.length() + " chars)");
                 generated++;
+                // the spec names the page after the template (edit_product.html): keep that name for the first value
+                String plain = htmlName(rc.template);
+                if (!plain.equals(outName) && unsuffixedWritten.add(plain)) {
+                    Files.write(outputDir.resolve(plain), html.getBytes(StandardCharsets.UTF_8));
+                    result.pages.put(plain, rc);
+                    report.log("  also wrote " + plain + " (same content as " + outName + ")");
+                }
             } catch (RuntimeException e) {
                 for (String l : renderLog) report.log(l);
                 report.semanticError(rc.template, "rendering failed: " + e.getMessage());
@@ -245,7 +267,15 @@ public class Main {
         report.log("");
         report.log("Done: " + generated + " page(s) generated in " + outputDir);
         finish(report, compilerOutputDir);
-        return report.hasErrors() ? 1 : 0;
+        result.exitCode = report.hasErrors() ? 1 : 0;
+        return result;
+    }
+
+    /** index.jinja -> index.html ; edit_product.jinja + {product_id=2} -> edit_product_2.html */
+    static String pageName(String template, Map<String, Object> params) {
+        StringBuilder sb = new StringBuilder(stripExt(template));
+        if (params != null) for (Object v : params.values()) if (v != null) sb.append('_').append(String.valueOf(v).replaceAll("[^A-Za-z0-9_-]", "_"));
+        return sb + ".html";
     }
 
     /* ------------------------------------------------------------------ */

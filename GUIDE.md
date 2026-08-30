@@ -50,6 +50,7 @@ The pipeline, and the package that implements each stage:
 
 | File | Job |
 |------|-----|
+| `DevServer.java` | Live mode. Serves `output/` on http://localhost:8000/. A `POST` to a generated page or a `GET` to a redirect-only route (`/delete/3`) is dispatched to the route that produced it: `PythonContextEvaluator.invokeRoute()` executes the function with the real method and form, `snapshotModule()` + `PythonDataWriter` rewrite `data.py`, `Main.compile()` regenerates all pages, and the browser is redirected (`303`) to the page the route redirected to. |
 | `Main.java` | The driver. Discovers the input files, runs the six phases in order (Python parsing, Jinja parsing, CSS parsing, Python evaluation, Jinja semantic analysis, code generation + copying), writes everything to `output/` and `compiler_output/`, and returns exit code 0 (success) or 1 (errors). Accepts `[projectDir] [outputRoot] [--verbose] [--force]`. |
 | `ASTPython.java` | Front end for one Python file: creates `PythonLexer` → `PythonParser` (with an error listener that records syntax errors) → `python.visitor.ASTBuilder` → `PythonSemanticAnalyzer`. Returns the AST root. |
 | `ASTHtmlJinja.java` | Front end for one template: `parseOnly()` builds the AST (lexer → parser → `builder.ASTBuilder`); `analyze()` runs `JinjaSemanticAnalyzer` with the variables the Python side passes to that template. Split in two because the context must be known before the template can be checked. |
@@ -116,6 +117,7 @@ The pipeline, and the package that implements each stage:
 
 | File | Job |
 |------|-----|
+| `PythonDataWriter.java` | Serializes evaluated module data (lists, dicts, strings, numbers) back to Python source — used by `DevServer` to persist `data.py`. |
 | `AstJsonSerializer.java` | Turns any AST (Python or Jinja/CSS) into JSON by reflection: `{"type": "ForStatement", "line": 12, ...fields...}`. Produces `ast_python.json` and `ast_jinja.json`. |
 | `CompilerReport.java` | Collects syntax errors (through an ANTLR error listener per file), semantic errors, warnings and a timestamped log. Writes `semantic_report.txt` (files analysed, errors per file, `RESULT: PASSED/FAILED`) and `generation_log.txt`. |
 
@@ -125,7 +127,9 @@ The pipeline, and the package that implements each stage:
 
 | File | Job |
 |------|-----|
-| `app.py` | The Flask back end. Holds the data (`products = [...]`, `shop_name`), the helper `_find_product_by_id`, and four routes: `/` → `index.jinja`, `/add` → `add_product.jinja`, `/edit/<int:product_id>` → `edit_product.jinja`, `/delete/<id>` (redirect only). Runs unchanged under real Flask too. |
+| `app.py` | The Flask back end. Imports the data from `data.py`, has the helpers `_find_product_by_id` / `_next_id`, and five routes: `/` → `index.jinja`, `/product/<int:product_id>` → `product_details.jinja`, `/add` → `add_product.jinja`, `/edit/<int:product_id>` → `edit_product.jinja`, `/delete/<id>` (redirect only). Runs unchanged under real Flask too. |
+| `data.py` | `products = [...]` and `shop_name`. A separate module so the dev server can rewrite it after every add / edit / delete without touching the program. |
+| `templates/product_details.jinja` | One product, with Edit / Delete buttons; generated once per product (`product_details_1.html`, …). |
 | `templates/base.jinja` | Layout: `<head>`, header with navigation (`url_for('index')`, `url_for('add_product')`), `{% block title %}`, `{% block content %}`, the `<script src="script.js">`. |
 | `templates/index.jinja` | Product list: `{% extends "base.jinja" %}`, `{% for product in products %}`, `{{ product.name }}`, `{% if product.price > 1000 %}` ("Premium" badge), `{% if products|length == 0 %}`, `loop.index`. |
 | `templates/add_product.jinja` | The add form (`url_for('add_product')`). |
@@ -167,6 +171,14 @@ output/                      compiler_output/
 ## 6. Requirement → implementation map
 
 Every item of the announcement, and where it is implemented.
+
+### Routes with a parameter
+
+`edit_product(product_id)` and `product_details(product_id)` are rendered once per candidate value
+(`PythonContextEvaluator.sampleArguments()` collects every `id` in the matching list), producing
+`edit_product_1.html`, `edit_product_2.html`, … and `url_for('edit_product', product_id=2)` links to
+`edit_product_2.html` (`Main.pageName()`). The spec's plain names (`edit_product.html`) are also written
+with the first product's content. Adding a product and regenerating therefore adds its two pages.
 
 ### The pipeline (section "المخطط العام")
 

@@ -77,6 +77,7 @@ public class PythonContextEvaluator {
     public Map<String, String> getRoutes() { return routes; }
     public List<RenderCall> getRenderCalls() { return renderCalls; }
     public Map<String, Object> getGlobals(String module) { return moduleGlobals.get(module); }
+    public Map<String, ASTNode> getModules() { return modules; }
 
     /* ------------------------------------------------------------------ */
     /*  Entry point                                                        */
@@ -90,24 +91,91 @@ public class PythonContextEvaluator {
         for (Object v : new ArrayList<>(globals.values())) {
             if (!(v instanceof PyFunction)) continue;
             PyFunction fn = (PyFunction) v;
-            if (!routes.containsKey(fn.def.name) && !containsRenderCall(fn.def.body)) continue;
+            if (!containsRenderCall(fn.def.body)) {
+                if (routes.containsKey(fn.def.name)) log.add(fn.def.name + "() renders no template (redirect-only route); not executed during generation.");
+                continue;
+            }
 
-            Map<String, Object> sample = sampleArguments(fn, globals);
-            lastRender = null;
-            try {
-                Object result = callFunction(fn, new ArrayList<>(), sample);
-                RenderResult rr = result instanceof RenderResult ? (RenderResult) result : lastRender;
-                if (rr != null) {
-                    renderCalls.add(new RenderCall(fn.def.name, routes.get(fn.def.name), rr.template, rr.context, sample));
-                    log.add("render_template('" + rr.template + "') found in " + fn.def.name + "() with context keys " + rr.context.keySet()
-                            + (sample.isEmpty() ? "" : " (route parameters sampled as " + sample + ")"));
-                } else {
-                    log.add(fn.def.name + "() does not render a template on its default (GET) path; skipped.");
+            // A route with a parameter (edit_product(product_id)) is rendered once per candidate value,
+            // e.g. once per product id, so that every link on the site has a page to point at.
+            List<Map<String, Object>> samples = sampleArguments(fn, globals);
+            for (Map<String, Object> sample : samples) {
+                lastRender = null;
+                try {
+                    Object result = callFunction(fn, new ArrayList<>(), sample);
+                    RenderResult rr = result instanceof RenderResult ? (RenderResult) result : lastRender;
+                    if (rr != null) {
+                        renderCalls.add(new RenderCall(fn.def.name, routes.get(fn.def.name), rr.template, rr.context, sample));
+                        log.add("render_template('" + rr.template + "') found in " + fn.def.name + "() with context keys " + rr.context.keySet()
+                                + (sample.isEmpty() ? "" : " (route parameters " + sample + ")"));
+                    } else {
+                        log.add(fn.def.name + "() does not render a template on its default (GET) path; skipped.");
+                        break;
+                    }
+                } catch (RuntimeException e) {
+                    log.add("WARNING: could not interpret " + fn.def.name + "(): " + e.getMessage());
                 }
-            } catch (RuntimeException e) {
-                log.add("WARNING: could not interpret " + fn.def.name + "(): " + e.getMessage());
             }
         }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  On-demand execution (used by DevServer for POST / delete requests)  */
+    /* ------------------------------------------------------------------ */
+
+    private String requestMethod = "GET";
+    private Map<String, Object> requestForm = new LinkedHashMap<>();
+    private String lastRedirect = null;
+    private Map<String, Object> lastRedirectParams = new LinkedHashMap<>();
+
+    /** The endpoint a redirect(url_for(...)) pointed at during the last invokeRoute, or null. */
+    public String getLastRedirect() { return lastRedirect; }
+    /** The keyword arguments of that url_for call (e.g. {product_id=2}). */
+    public Map<String, Object> getLastRedirectParams() { return lastRedirectParams; }
+
+    /**
+     * Executes one route function with a given HTTP method, route parameters and form data,
+     * exactly as Flask would dispatch the request. Mutations the function makes to the module
+     * data (append, item assignment, `global` rebinding) stay in the module globals and can be
+     * persisted with {@link #snapshotModule(String)}.
+     */
+    public Object invokeRoute(String endpoint, Map<String, Object> params, String method, Map<String, Object> form) {
+        Map<String, Object> globals = evaluateModule("app");
+        Object fnObj = globals.get(endpoint);
+        if (!(fnObj instanceof PyFunction)) throw new RuntimeException("no route function named " + endpoint);
+        PyFunction fn = (PyFunction) fnObj;
+        Map<String, Object> args = new LinkedHashMap<>();
+        for (String p : fn.def.parameters) args.put(p, params.get(p));
+        requestMethod = method == null ? "GET" : method.toUpperCase();
+        requestForm = form == null ? new LinkedHashMap<>() : form;
+        lastRedirect = null;
+        lastRender = null;
+        try {
+            log.add("invoke " + endpoint + "(" + args + ") with " + requestMethod + (requestForm.isEmpty() ? "" : " form " + requestForm.keySet()));
+            return callFunction(fn, new ArrayList<>(), args);
+        } finally {
+            requestMethod = "GET";
+            requestForm = new LinkedHashMap<>();
+        }
+    }
+
+    /**
+     * Current values of a data module's variables, with the main module's rebinding of the same
+     * names taken into account (a `global products; products = new_list` in app.py must win over
+     * the stale list still referenced by data.py).
+     */
+    public Map<String, Object> snapshotModule(String module) {
+        Map<String, Object> data = moduleGlobals.get(module);
+        if (data == null) return null;
+        Map<String, Object> app = moduleGlobals.get("app");
+        Map<String, Object> out = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> e : data.entrySet()) {
+            if (e.getValue() instanceof PyFunction || e.getValue() instanceof FlaskApp) continue;
+            Object v = e.getValue();
+            if (app != null && app.containsKey(e.getKey()) && !(app.get(e.getKey()) instanceof PyFunction)) v = app.get(e.getKey());
+            out.put(e.getKey(), v);
+        }
+        return out;
     }
 
     /* ------------------------------------------------------------------ */
@@ -407,7 +475,12 @@ public class PythonContextEvaluator {
                 return rr;
             }
             case "redirect": return args.isEmpty() ? "" : args.get(0);
-            case "url_for": return args.isEmpty() ? "" : "/" + args.get(0);
+            case "url_for": {
+                String endpoint = args.isEmpty() ? "" : String.valueOf(args.get(0));
+                lastRedirect = endpoint;
+                lastRedirectParams = new LinkedHashMap<>(kwargs);
+                return "/" + endpoint;
+            }
             case "Flask": return new FlaskApp();
             case "len": return (long) iterate(args.get(0)).size();
             case "str": return args.isEmpty() ? "" : stringify(args.get(0));
@@ -511,10 +584,10 @@ public class PythonContextEvaluator {
         switch (name) {
             case "__name__": return "__main__";
             case "request": {
-                // Generation happens on the default GET path with no submitted form.
+                // Generation happens on the default GET path with no submitted form; DevServer overrides both.
                 Map<String, Object> req = new LinkedHashMap<>();
-                req.put("method", "GET");
-                req.put("form", new LinkedHashMap<String, Object>());
+                req.put("method", requestMethod);
+                req.put("form", requestForm);
                 req.put("args", new LinkedHashMap<String, Object>());
                 req.put("path", "/");
                 return req;
@@ -535,35 +608,28 @@ public class PythonContextEvaluator {
      * We pick a representative value from the data: for "<x>_id" look for a global list
      * whose items are dicts with an "id" key and use the first id; otherwise use 1.
      */
-    private Map<String, Object> sampleArguments(PyFunction fn, Map<String, Object> globals) {
-        Map<String, Object> sample = new LinkedHashMap<>();
-        for (String p : fn.def.parameters) {
-            Object value = null;
-            if (p.endsWith("_id")) {
-                String base = p.substring(0, p.length() - 3);
-                for (Map.Entry<String, Object> g : globals.entrySet()) {
-                    if (!(g.getValue() instanceof List)) continue;
-                    if (!(g.getKey().startsWith(base))) continue;
-                    List<Object> list = (List<Object>) g.getValue();
-                    if (!list.isEmpty() && list.get(0) instanceof Map && ((Map<?, ?>) list.get(0)).containsKey("id")) {
-                        value = ((Map<?, ?>) list.get(0)).get("id");
-                        break;
-                    }
-                }
-                if (value == null) value = 1L;
-            } else {
-                // any list-typed global whose singular form matches the parameter name
-                for (Map.Entry<String, Object> g : globals.entrySet()) {
-                    if (g.getValue() instanceof List && g.getKey().startsWith(p) && !((List<?>) g.getValue()).isEmpty()) {
-                        value = ((List<?>) g.getValue()).get(0);
-                        break;
-                    }
-                }
-                if (value == null) value = 1L;
+    private List<Map<String, Object>> sampleArguments(PyFunction fn, Map<String, Object> globals) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        if (fn.def.parameters.isEmpty()) { out.add(new LinkedHashMap<>()); return out; }
+        String p = fn.def.parameters.get(0);          // Flask routes in this project take at most one parameter
+        List<Object> candidates = new ArrayList<>();
+        String base = p.endsWith("_id") ? p.substring(0, p.length() - 3) : p;
+        for (Map.Entry<String, Object> g : globals.entrySet()) {
+            if (!(g.getValue() instanceof List) || !g.getKey().startsWith(base)) continue;
+            for (Object item : (List<?>) g.getValue()) {
+                if (p.endsWith("_id")) { if (item instanceof Map && ((Map<?, ?>) item).containsKey("id")) candidates.add(((Map<?, ?>) item).get("id")); }
+                else candidates.add(item);
             }
-            sample.put(p, value);
+            if (!candidates.isEmpty()) break;
         }
-        return sample;
+        if (candidates.isEmpty()) candidates.add(1L);
+        for (Object c : candidates) {
+            Map<String, Object> sample = new LinkedHashMap<>();
+            sample.put(p, c);
+            for (int i = 1; i < fn.def.parameters.size(); i++) sample.put(fn.def.parameters.get(i), null);
+            out.add(sample);
+        }
+        return out;
     }
 
     private boolean containsRenderCall(ASTNode node) {

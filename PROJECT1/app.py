@@ -1,17 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
+from data import products, shop_name
 
 app = Flask(__name__)
-
-# ---------------------------------------------------------------------------
-# Data (in memory).  The compiler evaluates this list and passes it to the
-# templates as the "context data" during code generation.
-# ---------------------------------------------------------------------------
-products = [
-    {"id": 1, "name": "Laptop", "price": 1200, "details": "High performance laptop", "image": "laptop.png"},
-    {"id": 2, "name": "Phone", "price": 800, "details": "Smart phone", "image": "mobile.png"},
-]
-
-shop_name = "Products Application"
 
 
 def _find_product_by_id(product_id):
@@ -22,19 +12,33 @@ def _find_product_by_id(product_id):
     return None
 
 
+def _next_id():
+    highest = 0
+    for p in products:
+        if p["id"] > highest:
+            highest = p["id"]
+    return highest + 1
+
+
 @app.route("/")
 def index():
     total = len(products)
     return render_template("index.jinja", products=products, total=total, shop_name=shop_name)
 
 
+@app.route("/product/<int:product_id>")
+def product_details(product_id):
+    product = _find_product_by_id(product_id)
+    return render_template("product_details.jinja", product=product, shop_name=shop_name)
+
+
 @app.route("/add", methods=["GET", "POST"])
 def add_product():
     if request.method == "POST":
         new_product = {
-            "id": len(products) + 1,
+            "id": _next_id(),
             "name": request.form["name"],
-            "price": request.form["price"],
+            "price": int(request.form["price"]),
             "details": request.form["details"],
             "image": request.form["image"],
         }
@@ -50,10 +54,10 @@ def edit_product(product_id):
 
     if request.method == "POST" and product:
         product["name"] = request.form["name"]
-        product["price"] = request.form["price"]
+        product["price"] = int(request.form["price"])
         product["details"] = request.form["details"]
         product["image"] = request.form["image"]
-        return redirect(url_for("index"))
+        return redirect(url_for("product_details", product_id=product_id))
 
     return render_template("edit_product.jinja", product=product, shop_name=shop_name)
 

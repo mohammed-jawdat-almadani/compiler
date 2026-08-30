@@ -496,13 +496,22 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
     @Override
     public ASTNode visitTargets(PythonParser.TargetsContext ctx) {
         if (ctx.target().size() == 1) return visit(ctx.target(0));
-        return visit(ctx.target(0));
+        // a, b = ...  -> tuple target, represented as a ListNode of targets
+        List<ExpressionNode> parts = new ArrayList<>();
+        for (PythonParser.TargetContext t : ctx.target()) parts.add((ExpressionNode) visit(t));
+        return new ListNode(parts, ctx.getStart().getLine());
     }
 
     @Override
     public ASTNode visitTarget(PythonParser.TargetContext ctx) {
-        if (ctx.name() != null) return new IdentifierNode(ctx.name().getText(), ctx.getStart().getLine());
-        if (ctx.primary() != null) return visit(ctx.primary());
+        int line = ctx.getStart().getLine();
+        if (ctx.name() != null && ctx.primary() == null) return new IdentifierNode(ctx.name().getText(), line);
+        if (ctx.primary() != null && ctx.slices() != null)                      // product["name"] = ...
+            return new SubscriptNode(visit(ctx.primary()), visit(ctx.slices().slice(0)), line);
+        if (ctx.primary() != null && ctx.name() != null)                        // obj.attr = ...
+            return new AttributeAccessNode(visit(ctx.primary()), ctx.name().getText(), line);
+        if (ctx.target() != null) return visit(ctx.target());                   // (target)
+        if (ctx.targets() != null) return visit(ctx.targets());                 // [a, b]
         return null;
     }
 
