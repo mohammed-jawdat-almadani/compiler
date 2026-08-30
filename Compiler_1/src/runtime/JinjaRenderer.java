@@ -145,7 +145,7 @@ public class JinjaRenderer {
             out.append("<style>").append(s.rawCss != null ? s.rawCss : String.valueOf(s.node)).append("</style>");
 
         } else if (node instanceof JinjaExpression) {
-            out.append(escape(eval(((JinjaExpression) node).expression, scope, node)));
+            out.append(escape(eval((JinjaExpression) node, scope)));
 
         } else if (node instanceof ExtendsStatement) {
             // handled in renderDocument
@@ -157,27 +157,27 @@ public class JinjaRenderer {
 
         } else if (node instanceof AssignmentStatement) {
             AssignmentStatement a = (AssignmentStatement) node;
-            scope.set(a.variable, eval(a.expression, scope, node));
+            scope.set(a.variable, a.tree != null ? evalTree(a.tree, a.expression, scope, node) : eval(a.expression, scope, node));
 
         } else if (node instanceof ForStatement) {
             renderFor((ForStatement) node, scope, blocks, out);
 
         } else if (node instanceof IfStatement) {
             IfStatement s = (IfStatement) node;
-            if (truthy(eval(s.condition.expression, scope, node))) {
+            if (truthy(eval(s.condition, scope))) {
                 renderNodes(s.body, new Scope(scope), blocks, out);
                 return;
             }
             if (s.elifBlocks != null) {
                 for (ElifStatement e : s.elifBlocks) {
-                    if (truthy(eval(e.condition.expression, scope, e))) { renderNodes(e.body, new Scope(scope), blocks, out); return; }
+                    if (truthy(eval(e.condition, scope))) { renderNodes(e.body, new Scope(scope), blocks, out); return; }
                 }
             }
             if (s.elseBlock != null) renderNodes(s.elseBlock.body, new Scope(scope), blocks, out);
 
         } else if (node instanceof ElifStatement) {
             ElifStatement e = (ElifStatement) node;
-            if (truthy(eval(e.condition.expression, scope, node))) renderNodes(e.body, new Scope(scope), blocks, out);
+            if (truthy(eval(e.condition, scope))) renderNodes(e.body, new Scope(scope), blocks, out);
 
         } else if (node instanceof ElseStatement) {
             renderNodes(((ElseStatement) node).body, new Scope(scope), blocks, out);
@@ -185,7 +185,7 @@ public class JinjaRenderer {
         } else if (node instanceof WhileStatement) {
             WhileStatement w = (WhileStatement) node;
             int guard = 0;
-            while (truthy(eval(w.condition.expression, scope, node))) {
+            while (truthy(eval(w.condition, scope))) {
                 if (++guard > 10000) { warn(node, "while loop exceeded 10000 iterations; stopped"); break; }
                 renderNodes(w.body, scope, blocks, out);
             }
@@ -196,7 +196,7 @@ public class JinjaRenderer {
     }
 
     private void renderFor(ForStatement f, Scope scope, Map<String, BlockStatement> blocks, StringBuilder out) {
-        Object iterable = eval(f.iterable.expression, scope, f);
+        Object iterable = eval(f.iterable, scope);
         List<Object> items;
         if (iterable instanceof Map && f.targets.size() == 2) {
             items = new ArrayList<>();
@@ -232,7 +232,7 @@ public class JinjaRenderer {
 
     private void renderAttribute(Node a, Scope scope, StringBuilder out) {
         if (!(a instanceof HtmlAttribute)) {
-            if (a instanceof JinjaExpression) out.append(' ').append(escape(eval(((JinjaExpression) a).expression, scope, a)));
+            if (a instanceof JinjaExpression) out.append(' ').append(escape(eval((JinjaExpression) a, scope)));
             return;
         }
         HtmlAttribute attr = (HtmlAttribute) a;
@@ -243,7 +243,7 @@ public class JinjaRenderer {
         if (attr.value instanceof HtmlAttributeValue) {
             value = substituteInline(((HtmlAttributeValue) attr.value).value, scope);
         } else if (attr.value instanceof JinjaExpression) {
-            value = escape(eval(((JinjaExpression) attr.value).expression, scope, attr.value));
+            value = escape(eval((JinjaExpression) attr.value, scope));
         } else if (attr.value instanceof CssDeclarationList) {
             StringBuilder sb = new StringBuilder();
             for (Node d : ((CssDeclarationList) attr.value).declarations) {
@@ -276,6 +276,21 @@ public class JinjaRenderer {
     /* ------------------------------------------------------------------ */
     /*  Helpers                                                            */
     /* ------------------------------------------------------------------ */
+
+    /** Evaluates a JinjaExpression node: its expression AST when the parser built one, else its text. */
+    private Object eval(JinjaExpression node, Scope scope) {
+        try {
+            return node.tree != null ? evaluator.evaluate(node.tree, scope) : evaluator.evaluate(node.expression, scope);
+        } catch (RuntimeException e) {
+            warn(node, "cannot evaluate '" + node.expression + "': " + e.getMessage());
+            return JinjaExpressionEvaluator.UNDEFINED;
+        }
+    }
+
+    private Object evalTree(ast.jinja.expr.ExprNode tree, String text, Scope scope, Node at) {
+        try { return evaluator.evaluate(tree, scope); }
+        catch (RuntimeException e) { warn(at, "cannot evaluate '" + text + "': " + e.getMessage()); return JinjaExpressionEvaluator.UNDEFINED; }
+    }
 
     private Object eval(String expression, Scope scope, Node at) {
         try {

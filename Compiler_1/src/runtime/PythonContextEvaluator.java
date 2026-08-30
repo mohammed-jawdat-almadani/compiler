@@ -201,6 +201,9 @@ public class PythonContextEvaluator {
                 case CONTINUE: throw new ContinueSignal();
                 default: break;
             }
+        } else if (s instanceof ScopeDefNode) {
+            ScopeDefNode n = (ScopeDefNode) s;
+            if (n.isGlobal && locals != globals) for (String name : n.names) locals.put("__global__" + name, Boolean.TRUE);
         } else if (s instanceof TryNode || s instanceof WithNode) {
             for (ASTNode c : s.getChildren()) if (c instanceof BlockNode) { execBlock(c, locals, globals); break; }
         } else if (s instanceof ExpressionNode) {
@@ -225,7 +228,9 @@ public class PythonContextEvaluator {
 
     private void assign(ASTNode target, Object value, Map<String, Object> locals, Map<String, Object> globals) {
         if (target instanceof IdentifierNode) {
-            locals.put(((IdentifierNode) target).name, value);
+            String name = ((IdentifierNode) target).name;
+            if (locals != globals && locals.containsKey("__global__" + name)) globals.put(name, value);   // declared with `global`
+            else locals.put(name, value);
         } else if (target instanceof SubscriptNode) {
             SubscriptNode t = (SubscriptNode) target;
             Object container = eval(t.container, locals, globals);

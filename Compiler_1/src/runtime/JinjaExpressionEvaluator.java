@@ -1,5 +1,7 @@
 package runtime;
 
+import ast.jinja.expr.*;
+
 import java.util.*;
 import java.util.function.Function;
 
@@ -45,6 +47,94 @@ public class JinjaExpressionEvaluator {
     /*  Public API                                                         */
     /* ------------------------------------------------------------------ */
 
+    /** Evaluates an expression AST (built by HtmlJinjaVisitor from the parser's labelled alternatives). */
+    public Object evaluate(ExprNode node, Scope scope) {
+        if (node == null) return UNDEFINED;
+
+        if (node instanceof LiteralExpr) return ((LiteralExpr) node).value;
+
+        if (node instanceof IdentifierExpr) {
+            String name = ((IdentifierExpr) node).name;
+            if (functions.containsKey(name) && !scope.has(name)) return functions.get(name);
+            return scope.get(name);
+        }
+
+        if (node instanceof AttributeExpr) {
+            AttributeExpr a = (AttributeExpr) node;
+            return attribute(evaluate(a.object, scope), a.name);
+        }
+
+        if (node instanceof IndexExpr) {
+            IndexExpr ix = (IndexExpr) node;
+            Object v = getItem(evaluate(ix.object, scope), evaluate(ix.index, scope));
+            return v == null ? UNDEFINED : v;
+        }
+
+        if (node instanceof CallExpr) {
+            CallExpr c = (CallExpr) node;
+            List<Object> args = new ArrayList<>();
+            for (ExprNode a : c.args) args.add(evaluate(a, scope));
+            Map<String, Object> kwargs = new LinkedHashMap<>();
+            for (Map.Entry<String, ExprNode> e : c.kwargs.entrySet()) kwargs.put(e.getKey(), evaluate(e.getValue(), scope));
+            args.add(kwargs);
+            if (c.callee instanceof AttributeExpr) {            // obj.method(...)
+                AttributeExpr m = (AttributeExpr) c.callee;
+                return callMethod(evaluate(m.object, scope), m.name, args);
+            }
+            if (c.callee instanceof IdentifierExpr) {           // url_for(...), range(...)
+                String name = ((IdentifierExpr) c.callee).name;
+                if (functions.containsKey(name) && !scope.has(name)) return functions.get(name).apply(args);
+            }
+            Object callee = evaluate(c.callee, scope);
+            if (callee instanceof Function) return ((Function<List<Object>, Object>) callee).apply(args);
+            throw new RuntimeException("'" + c.callee + "' is not callable");
+        }
+
+        if (node instanceof FilterExpr) {
+            FilterExpr f = (FilterExpr) node;
+            List<Object> args = new ArrayList<>();
+            for (ExprNode a : f.args) args.add(evaluate(a, scope));
+            Map<String, Object> kwargs = new LinkedHashMap<>();
+            for (Map.Entry<String, ExprNode> e : f.kwargs.entrySet()) kwargs.put(e.getKey(), evaluate(e.getValue(), scope));
+            args.add(kwargs);
+            return applyFilter(f.filter, evaluate(f.value, scope), args);
+        }
+
+        if (node instanceof UnaryExpr) {
+            UnaryExpr u = (UnaryExpr) node;
+            Object v = evaluate(u.operand, scope);
+            if (u.operator.equals("not")) return !truthyValue(v);
+            return v instanceof Double ? -(Double) v : -toLong(v);
+        }
+
+        if (node instanceof BinaryExpr) {
+            BinaryExpr b = (BinaryExpr) node;
+            switch (b.operator) {
+                case "and": { Object l = evaluate(b.left, scope); return truthyValue(l) ? evaluate(b.right, scope) : l; }
+                case "or":  { Object l = evaluate(b.left, scope); return truthyValue(l) ? l : evaluate(b.right, scope); }
+                case "~":   return str(evaluate(b.left, scope)) + str(evaluate(b.right, scope));
+                case "in":  return contains(evaluate(b.right, scope), evaluate(b.left, scope));
+                default:    return binary(b.operator, evaluate(b.left, scope), evaluate(b.right, scope));
+            }
+        }
+
+        if (node instanceof TestExpr) {
+            TestExpr t = (TestExpr) node;
+            boolean r = applyTest(t.test, evaluate(t.value, scope), new ArrayList<>());
+            return t.negated ? !r : r;
+        }
+
+        if (node instanceof ConditionalExpr) {
+            ConditionalExpr c = (ConditionalExpr) node;
+            return truthyValue(evaluate(c.condition, scope)) ? evaluate(c.value, scope) : (c.otherwise != null ? evaluate(c.otherwise, scope) : UNDEFINED);
+        }
+
+        throw new RuntimeException("unknown expression node " + node.getClass().getSimpleName());
+    }
+
+    private static boolean truthyValue(Object v) { return v != UNDEFINED && truthy(v); }
+
+    /** Evaluates expression text (used for {{ }} embedded inside attribute text or script bodies). */
     public Object evaluate(String expression, Scope scope) {
         List<Token> tokens = tokenize(expression);
         Parser p = new Parser(tokens, scope);

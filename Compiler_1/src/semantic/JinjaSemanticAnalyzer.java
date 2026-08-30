@@ -5,6 +5,7 @@ import ast.css.CssDeclaration;
 import ast.css.CssDeclarationList;
 import ast.html.*;
 import ast.jinja.*;
+import ast.jinja.expr.*;
 import symboltable.SymbolTable;
 
 import java.util.*;
@@ -82,6 +83,35 @@ public class JinjaSemanticAnalyzer extends SymbolTableVisitor {
         return out;
     }
 
+    /** Free variables of an expression AST: every IdentifierExpr (attribute names, filters and tests are not identifiers). */
+    static void freeVariables(ExprNode n, List<String> out) {
+        if (n == null) return;
+        if (n instanceof IdentifierExpr) { String id = ((IdentifierExpr) n).name; if (!out.contains(id)) out.add(id); }
+        else if (n instanceof AttributeExpr) freeVariables(((AttributeExpr) n).object, out);
+        else if (n instanceof IndexExpr) { freeVariables(((IndexExpr) n).object, out); freeVariables(((IndexExpr) n).index, out); }
+        else if (n instanceof CallExpr) { CallExpr c = (CallExpr) n; freeVariables(c.callee, out); for (ExprNode a : c.args) freeVariables(a, out); for (ExprNode a : c.kwargs.values()) freeVariables(a, out); }
+        else if (n instanceof FilterExpr) { FilterExpr f = (FilterExpr) n; freeVariables(f.value, out); for (ExprNode a : f.args) freeVariables(a, out); for (ExprNode a : f.kwargs.values()) freeVariables(a, out); }
+        else if (n instanceof UnaryExpr) freeVariables(((UnaryExpr) n).operand, out);
+        else if (n instanceof BinaryExpr) { freeVariables(((BinaryExpr) n).left, out); freeVariables(((BinaryExpr) n).right, out); }
+        else if (n instanceof TestExpr) freeVariables(((TestExpr) n).value, out);
+        else if (n instanceof ConditionalExpr) { ConditionalExpr c = (ConditionalExpr) n; freeVariables(c.value, out); freeVariables(c.condition, out); freeVariables(c.otherwise, out); }
+    }
+
+    private void checkExpression(JinjaExpression node, String what) {
+        if (node.tree != null) {
+            List<String> vars = new ArrayList<>();
+            freeVariables(node.tree, vars);
+            for (String var : vars) {
+                if (!isDefined(var)) {
+                    reportError(node.line, node.column, "Undefined " + what + " '" + var + "' in {{ " + node.expression + " }}"
+                            + (contextVars.isEmpty() ? "" : " (template context provides " + contextVars + ")"));
+                }
+            }
+        } else {
+            checkExpression(node.expression, node.line, node.column, what);
+        }
+    }
+
     private void checkExpression(String expr, int line, int col, String what) {
         for (String var : freeVariables(expr)) {
             if (!isDefined(var)) {
@@ -95,7 +125,7 @@ public class JinjaSemanticAnalyzer extends SymbolTableVisitor {
 
     @Override
     public Void visitJinjaExpression(JinjaExpression node) {
-        checkExpression(node.expression, node.line, node.column, "variable");
+        checkExpression(node, "variable");
         return super.visitJinjaExpression(node);
     }
 
@@ -106,7 +136,7 @@ public class JinjaSemanticAnalyzer extends SymbolTableVisitor {
                 if (a instanceof HtmlAttribute) {
                     HtmlAttribute attr = (HtmlAttribute) a;
                     if (attr.value instanceof HtmlAttributeValue) checkInline(((HtmlAttributeValue) attr.value).value, attr);
-                    else if (attr.value instanceof JinjaExpression) checkExpression(((JinjaExpression) attr.value).expression, attr.line, attr.column, "variable");
+                    else if (attr.value instanceof JinjaExpression) checkExpression((JinjaExpression) attr.value, "variable");
                     else if (attr.value instanceof CssDeclarationList) {
                         for (Node d : ((CssDeclarationList) attr.value).declarations)
                             if (d instanceof CssDeclaration) checkInline(((CssDeclaration) d).value, attr);
@@ -133,7 +163,8 @@ public class JinjaSemanticAnalyzer extends SymbolTableVisitor {
 
     @Override
     public Void visitAssignmentStatement(AssignmentStatement node) {
-        checkExpression(node.expression, node.line, node.column, "variable");
+        if (node.tree != null) { List<String> vars = new ArrayList<>(); freeVariables(node.tree, vars); for (String v : vars) if (!isDefined(v)) reportError(node.line, node.column, "Undefined variable '" + v + "' in {% set " + node.variable + " = " + node.expression + " %}"); }
+        else checkExpression(node.expression, node.line, node.column, "variable");
         return super.visitAssignmentStatement(node);   // defines the variable
     }
 

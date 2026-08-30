@@ -505,4 +505,110 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
         if (ctx.primary() != null) return visit(ctx.primary());
         return null;
     }
+
+    /* ---------- remaining labelled alternatives of the grammar ---------- */
+
+    @Override
+    public ASTNode visitExprStmt(PythonParser.ExprStmtContext ctx) { return visit(ctx.expressions()); }
+
+    @Override
+    public ASTNode visitAtomExpr(PythonParser.AtomExprContext ctx) { return visit(ctx.atom()); }
+
+    @Override
+    public ASTNode visitFactorPower(PythonParser.FactorPowerContext ctx) { return visit(ctx.power()); }
+
+    @Override
+    public ASTNode visitPowerExpr(PythonParser.PowerExprContext ctx) {
+        ASTNode base = visit(ctx.primary());
+        if (ctx.factor() == null) return base;
+        return new BinaryOpNode(base, "**", visit(ctx.factor()), ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitGroupAtom(PythonParser.GroupAtomContext ctx) {
+        if (ctx.expressions() != null) return visit(ctx.expressions());   // (expr) or a tuple
+        if (ctx.yield_expr() != null) return visit(ctx.yield_expr());
+        return new ListNode(new ArrayList<>(), ctx.getStart().getLine());    // ()
+    }
+
+    @Override
+    public ASTNode visitEllipsisAtom(PythonParser.EllipsisAtomContext ctx) {
+        return new LiteralNode("...", "ellipsis", ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitAssertStmt(PythonParser.AssertStmtContext ctx) {
+        PythonParser.Assert_stmtContext a = ctx.assert_stmt();
+        ASTNode message = a.expression().size() > 1 ? visit(a.expression(1)) : null;
+        return new AssertNode(visit(a.expression(0)), message, ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitDelStmt(PythonParser.DelStmtContext ctx) {
+        List<ASTNode> targets = new ArrayList<>();
+        for (PythonParser.TargetContext t : ctx.del_stmt().target()) targets.add(visit(t));
+        return new DeleteNode(targets, ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitRaiseStmt(PythonParser.RaiseStmtContext ctx) {
+        PythonParser.Raise_stmtContext r = ctx.raise_stmt();
+        ASTNode exception = r.expression().isEmpty() ? null : visit(r.expression(0));
+        return new RaiseNode(exception, ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitGlobalStmt(PythonParser.GlobalStmtContext ctx) {
+        List<String> names = new ArrayList<>();
+        for (PythonParser.NameContext n : ctx.global_stmt().name()) names.add(n.getText());
+        return new ScopeDefNode(names, true, ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitNonlocalStmt(PythonParser.NonlocalStmtContext ctx) {
+        List<String> names = new ArrayList<>();
+        for (PythonParser.NameContext n : ctx.nonlocal_stmt().name()) names.add(n.getText());
+        return new ScopeDefNode(names, false, ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitYieldStmt(PythonParser.YieldStmtContext ctx) { return visit(ctx.yield_stmt().yield_expr()); }
+
+    @Override
+    public ASTNode visitYield_expr(PythonParser.Yield_exprContext ctx) {
+        boolean from = ctx.FROM() != null;
+        ASTNode value = ctx.expression() != null ? visit(ctx.expression()) : (ctx.expressions() != null ? visit(ctx.expressions()) : null);
+        return new YieldNode(value, from, ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitLambdaExpr(PythonParser.LambdaExprContext ctx) {
+        PythonParser.LambdefContext l = ctx.lambdef();
+        List<String> params = new ArrayList<>();
+        if (l.params() != null) for (PythonParser.ParamContext p : l.params().param()) params.add(p.name().getText());
+        return new LambdaNode(params, visit(l.expression()), ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitTryStmt(PythonParser.TryStmtContext ctx) {
+        PythonParser.Try_stmtContext t = ctx.try_stmt();
+        BlockNode body = (BlockNode) visit(t.block());
+        List<ExceptHandlerNode> handlers = new ArrayList<>();
+        for (PythonParser.Except_blockContext e : t.except_block()) {
+            ASTNode type = e.expression() != null ? visit(e.expression()) : null;
+            String var = e.name() != null ? e.name().getText() : null;
+            handlers.add(new ExceptHandlerNode(type, var, (BlockNode) visit(e.block()), e.getStart().getLine()));
+        }
+        BlockNode elseBody = t.else_block() != null ? (BlockNode) visit(t.else_block().block()) : null;
+        BlockNode finallyBody = t.finally_block() != null ? (BlockNode) visit(t.finally_block().block()) : null;
+        return new TryNode(body, handlers, finallyBody, elseBody, ctx.getStart().getLine());
+    }
+
+    @Override
+    public ASTNode visitWithStmt(PythonParser.WithStmtContext ctx) {
+        PythonParser.With_stmtContext w = ctx.with_stmt();
+        PythonParser.With_itemContext item = w.with_item(0);
+        ASTNode target = item.target() != null ? visit(item.target()) : null;
+        return new WithNode(visit(item.expression()), target, (BlockNode) visit(w.block()), ctx.getStart().getLine());
+    }
 }

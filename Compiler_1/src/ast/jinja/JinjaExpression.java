@@ -4,7 +4,8 @@ import ast.Node;
 import ast.NodeVisitor;
 
 public class JinjaExpression extends Node {
-    public String expression;
+    public String expression;                 // source text of the expression
+    public ast.jinja.expr.ExprNode tree;      // expression AST built from the parser's labelled alternatives
 
     public JinjaExpression(int line, int column, String expression) {
         super(line, column);

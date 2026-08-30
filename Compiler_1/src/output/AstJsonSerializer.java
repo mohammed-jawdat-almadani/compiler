@@ -103,6 +103,7 @@ public class AstJsonSerializer {
 
     private static String jsonName(String field) {
         if (field.equals("lineNumber")) return "line";
+        if (field.equals("type")) return "valueType";   // "type" is reserved for the node label (e.g. LiteralNode.type -> valueType)
         return field;
     }
 
