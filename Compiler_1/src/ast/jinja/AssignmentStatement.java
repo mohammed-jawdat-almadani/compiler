@@ -6,6 +6,7 @@ import ast.NodeVisitor;
 public class AssignmentStatement extends Node {
     public String variable;
     public String expression;
+    public ast.jinja.expr.ExprNode tree;
 
     public AssignmentStatement(int line, int column, String variable, String expression) {
         super(line, column);

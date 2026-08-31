@@ -1,4 +1,4 @@
-// Generated from C:/Users/NEW MSI/IdeaProjects/Flask-and-Jinja2-with-HTML-and-CSS7/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
+// Generated from antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
 package antlr;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -197,6 +197,18 @@ public class HtmlJinjaParserBaseListener implements HtmlJinjaParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterEqOr(HtmlJinjaParser.EqOrContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqOr(HtmlJinjaParser.EqOrContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterEqFilter(HtmlJinjaParser.EqFilterContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -209,25 +221,37 @@ public class HtmlJinjaParserBaseListener implements HtmlJinjaParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterEqPar(HtmlJinjaParser.EqParContext ctx) { }
+	@Override public void enterEqNot(HtmlJinjaParser.EqNotContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitEqPar(HtmlJinjaParser.EqParContext ctx) { }
+	@Override public void exitEqNot(HtmlJinjaParser.EqNotContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterEqAdd(HtmlJinjaParser.EqAddContext ctx) { }
+	@Override public void enterEqNeg(HtmlJinjaParser.EqNegContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitEqAdd(HtmlJinjaParser.EqAddContext ctx) { }
+	@Override public void exitEqNeg(HtmlJinjaParser.EqNegContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEqBool(HtmlJinjaParser.EqBoolContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqBool(HtmlJinjaParser.EqBoolContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -257,13 +281,13 @@ public class HtmlJinjaParserBaseListener implements HtmlJinjaParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterEqMul(HtmlJinjaParser.EqMulContext ctx) { }
+	@Override public void enterEqAnd(HtmlJinjaParser.EqAndContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitEqMul(HtmlJinjaParser.EqMulContext ctx) { }
+	@Override public void exitEqAnd(HtmlJinjaParser.EqAndContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -293,13 +317,13 @@ public class HtmlJinjaParserBaseListener implements HtmlJinjaParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterEqCompare(HtmlJinjaParser.EqCompareContext ctx) { }
+	@Override public void enterEqTernary(HtmlJinjaParser.EqTernaryContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitEqCompare(HtmlJinjaParser.EqCompareContext ctx) { }
+	@Override public void exitEqTernary(HtmlJinjaParser.EqTernaryContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -312,6 +336,150 @@ public class HtmlJinjaParserBaseListener implements HtmlJinjaParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitEqDouble(HtmlJinjaParser.EqDoubleContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEqNone(HtmlJinjaParser.EqNoneContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqNone(HtmlJinjaParser.EqNoneContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEqPar(HtmlJinjaParser.EqParContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqPar(HtmlJinjaParser.EqParContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEqAdd(HtmlJinjaParser.EqAddContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqAdd(HtmlJinjaParser.EqAddContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEqIs(HtmlJinjaParser.EqIsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqIs(HtmlJinjaParser.EqIsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEqMul(HtmlJinjaParser.EqMulContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqMul(HtmlJinjaParser.EqMulContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEqConcat(HtmlJinjaParser.EqConcatContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqConcat(HtmlJinjaParser.EqConcatContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEqCall(HtmlJinjaParser.EqCallContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqCall(HtmlJinjaParser.EqCallContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEqCompare(HtmlJinjaParser.EqCompareContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqCompare(HtmlJinjaParser.EqCompareContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterEqIn(HtmlJinjaParser.EqInContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEqIn(HtmlJinjaParser.EqInContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterArguments(HtmlJinjaParser.ArgumentsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitArguments(HtmlJinjaParser.ArgumentsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterKwArgument(HtmlJinjaParser.KwArgumentContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitKwArgument(HtmlJinjaParser.KwArgumentContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPosArgument(HtmlJinjaParser.PosArgumentContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPosArgument(HtmlJinjaParser.PosArgumentContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

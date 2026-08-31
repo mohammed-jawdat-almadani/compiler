@@ -4,13 +4,17 @@ import ast.Node;
 import ast.css.*;
 import ast.html.*;
 import ast.jinja.*;
-import symbol_table.SymbolTableManager;
+import symboltable.*;
 
 public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
 
-    private final SymbolTableManager symtab = new SymbolTableManager();
+    protected SymbolTable symtab;
 
-    public SymbolTableManager getSymbolTable() {
+    public SymbolTableVisitor(SymbolTable symtab) {
+        this.symtab = symtab;
+    }
+
+    public SymbolTable getSymbolTable() {
         return symtab;
     }
 
@@ -50,19 +54,19 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
 
     @Override
     public Void visitAssignmentStatement(AssignmentStatement node) {
-        symtab.define(node.variable, "any", node.line, node.column);
+        symtab.define(new WebSymbols.JinjaVariableSymbol(node.variable));
         return null;
     }
 
     @Override
     public Void visitForStatement(ForStatement node) {
-        symtab.enterScope();
+        symtab.enterScope(new LocalScope(symtab.getCurrentScope()));
 
         for (String t : node.targets) {
-            symtab.define(t, "any", node.line, node.column);
+            symtab.define(new WebSymbols.JinjaVariableSymbol(t));
         }
 
-        super.visitForStatement(node); // 👈 يكمل traversal
+        super.visitForStatement(node);
         symtab.exitScope();
 
         return null;
@@ -72,7 +76,7 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
     public Void visitCssStylesheet(CssStylesheet node) {
         if (node.rules != null) {
             for (Node r : node.rules) {
-                visit(r); // زيارة كل rule داخل الـ stylesheet
+                visit(r);
             }
         }
         return null;
@@ -82,7 +86,7 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
     public Void visitCssRuleSet(CssRuleSet node) {
         if (node.declarations != null) {
             for (CssDeclaration d : node.declarations) {
-                visitCssDeclaration(d); // زيارة كل declaration
+                visitCssDeclaration(d);
             }
         }
         return null;
@@ -96,7 +100,7 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
     @Override
     public Void visitCssDeclaration(CssDeclaration node) {
         if (node.property.startsWith("--")) {
-            symtab.define(node.property, "css-var", node.line, node.column);
+            symtab.define(new WebSymbols.CssVariableSymbol(node.property));
         }
         return null;
     }
@@ -122,10 +126,9 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
     @Override
     public Void visitBlockStatement(ast.jinja.BlockStatement node) {
         if (node.getName() != null && !node.getName().isEmpty()) {
-            symtab.define(node.getName(), "jinja-block", node.line, node.column);
+            symtab.define(new WebSymbols.JinjaBlockSymbol(node.getName()));
         }
-        // Enter a scope for the block body (optional, but recommended)
-        symtab.enterScope();
+        symtab.enterScope(new LocalScope(symtab.getCurrentScope()));
         if (node.getBody() != null) {
             for (var child : node.getBody()) {
                 child.accept(this);
@@ -147,10 +150,10 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
 
     @Override
     public Void visitCssMediaRule(CssMediaRule node) {
-        symtab.enterScope(); // Scope جديد لكل media
+        symtab.enterScope(new LocalScope(symtab.getCurrentScope()));
         if (node.rules != null) {
             for (Node r : node.rules) {
-                visit(r); // زيارة كل rule داخل media
+                visit(r);
             }
         }
         symtab.exitScope();
@@ -199,13 +202,13 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
 
     @Override
     public Void visitCssFeatureValueDefinition(CssFeatureValueDefinition node) {
-        symtab.define(node.name, "css-feature", node.line, node.column);
+        symtab.define(new WebSymbols.CssFeatureSymbol(node.name));
         return null;
     }
 
     @Override
     public Void visitIfStatement(IfStatement node) {
-        symtab.enterScope();
+        symtab.enterScope(new LocalScope(symtab.getCurrentScope()));
         super.visitIfStatement(node);
         symtab.exitScope();
         return null;
@@ -213,7 +216,7 @@ public class SymbolTableVisitor extends BaseNodeVisitor<Void> {
 
     @Override
     public Void visitWhileStatement(WhileStatement node) {
-        symtab.enterScope();
+        symtab.enterScope(new LocalScope(symtab.getCurrentScope()));
         super.visitWhileStatement(node);
         symtab.exitScope();
         return null;

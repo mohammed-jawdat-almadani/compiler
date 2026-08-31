@@ -5,6 +5,7 @@ import ast.NodeVisitor;
 
 public class Style extends Node {
     public Node node;
+    public String rawCss;
 
     public Style(int line, int column, Node node) {
         super(line, column);

@@ -4,6 +4,16 @@ options {
     tokenVocab = HtmlJinjaLexer;
 }
 
+@parser::members {
+    private boolean isVoidElement(String tagName) {
+        String t = tagName.toLowerCase();
+        return t.equals("area") || t.equals("base") || t.equals("br") || t.equals("col") ||
+               t.equals("embed") || t.equals("hr") || t.equals("img") || t.equals("input") ||
+               t.equals("link") || t.equals("meta") || t.equals("param") || t.equals("source") ||
+               t.equals("track") || t.equals("wbr");
+    }
+}
+
 block_statement
     : block_open templateContent* block_close
     ;
@@ -18,7 +28,7 @@ block_close
 
 /* =================== Main Html Document =================== */ // This is the empty document
 htmlDocument
-    : scriptletOrSeaWs*
+    : (scriptletOrSeaWs | DTD)*
       (extends_statement | jinja_statement | jinjaComment | htmlMisc | htmlElement)*
     ;
 
@@ -37,8 +47,11 @@ scriptletOrSeaWs
 htmlElement
     : jinjaExpression
     | jinja_statement
-    | TAG_OPEN TAG_NAME htmlTagContent* (
-        TAG_CLOSE (htmlContent TAG_OPEN TAG_SLASH TAG_NAME TAG_CLOSE)?
+    | TAG_OPEN startName=TAG_NAME htmlTagContent* (
+        TAG_CLOSE (
+            { !isVoidElement($startName.text) }? htmlContent TAG_OPEN TAG_SLASH endName=TAG_NAME TAG_CLOSE 
+            { $startName.text.equalsIgnoreCase($endName.text) }?
+        )?
         | TAG_SLASH_CLOSE
     )
     | SCRIPTLET
@@ -86,16 +99,37 @@ jinjaExpression
 /* =================== Jinja Definition Expression =================== */ // Type of expression
 expression
     : JINJA_LP expression JINJA_RP                                          #eqPar
-    | left=expression operator=(JINJA_MUL|JINJA_DIV) right=expression       #eqMul
-    | left=expression operator=(JINJA_ADD|JINJA_SUB) right=expression       #eqAdd
-    | left=expression operator=(JINJA_EQ|JINJA_NEQ|JINJA_GT|JINJA_LT|JINJA_GTEQ|JINJA_LTEQ) right=expression  #eqCompare
     | expression JINJA_DOT JINJA_ID                                         #eqAttr
     | expression JINJA_LSP expression JINJA_RSP                            #eqIndex
-    | expression JINJA_PIP JINJA_ID ('(' expression* ')')?                 #eqFilter
+    | expression JINJA_LP arguments? JINJA_RP                               #eqCall
+    | expression JINJA_PIP JINJA_ID (JINJA_LP arguments? JINJA_RP)?         #eqFilter
+    | JINJA_NOT expression                                                  #eqNot
+    | JINJA_SUB expression                                                  #eqNeg
+    | left=expression operator=(JINJA_MUL|JINJA_DIV) right=expression       #eqMul
+    | left=expression operator=(JINJA_ADD|JINJA_SUB) right=expression       #eqAdd
+    | left=expression JINJA_TILDE right=expression                          #eqConcat
+    | left=expression operator=(JINJA_EQ|JINJA_NEQ|JINJA_GT|JINJA_LT|JINJA_GTEQ|JINJA_LTEQ) right=expression  #eqCompare
+    | left=expression JINJA_IN right=expression                             #eqIn
+    | left=expression JINJA_IS JINJA_NOT? JINJA_ID                          #eqIs
+    | left=expression JINJA_AND right=expression                            #eqAnd
+    | left=expression JINJA_OR right=expression                             #eqOr
+    | expression JINJA_IF expression (JINJA_ELSE expression)?                #eqTernary
     | JINJA_DOUBLE                                                    #eqDouble
     | JINJA_INT                                                       #eqInt
     | JINJA_STRING                                                    #eqString
+    | JINJA_BOOL                                                      #eqBool
+    | JINJA_NONE                                                      #eqNone
     | JINJA_ID                                                        #eqId
+    ;
+
+/* =================== Call / filter arguments =================== */ // f(a, b, key=value)
+arguments
+    : argument (JINJA_COMA argument)*
+    ;
+
+argument
+    : JINJA_ID JINJA_SEQ expression   #kwArgument
+    | expression                      #posArgument
     ;
 
 /* =================== Jinja Statement =================== */ // set, if, while and for {% ... %}

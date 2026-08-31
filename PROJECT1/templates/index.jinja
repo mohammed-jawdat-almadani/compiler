@@ -1,0 +1,38 @@
+{% extends "base.jinja" %}
+{% block title %}Products{% endblock %}
+
+{% block content %}
+<div class="h1">Products</div>
+<div class="muted">Browse all {{ total }} products currently stored in memory.</div>
+
+{% if products|length == 0 %}
+<div class="muted">No products yet. <a href="{{ url_for('add_product') }}">Add the first one</a>.</div>
+{% else %}
+<div class="grid">
+  {% for product in products %}
+  <div class="card" data-id="{{ product.id }}">
+    <div class="img">
+      <img src="{{ url_for('static', filename='images/' ~ product.image) }}" alt="{{ product.name }}">
+    </div>
+
+    <div class="body">
+      <div class="name">{{ loop.index }}. {{ product.name }}</div>
+      <div class="price">
+        <span class="badge">Price</span>
+        <span>{{ product.price }}$</span>
+        {% if product.price > 1000 %}<span class="badge">Premium</span>{% endif %}
+      </div>
+
+      <div class="muted">{{ product.details }}</div>
+
+      <div class="actions">
+        <a class="btn" href="{{ url_for('product_details', product_id=product.id) }}">Details</a>
+        <a class="btn primary" href="{{ url_for('edit_product', product_id=product.id) }}">Edit</a>
+        <a class="btn danger" href="{{ url_for('delete_product', product_id=product.id) }}" onclick="return confirmDelete()">Delete</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

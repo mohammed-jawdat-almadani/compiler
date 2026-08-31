@@ -1,4 +1,4 @@
-// Generated from C:/Users/NEW MSI/IdeaProjects/Flask-and-Jinja2-with-HTML-and-CSS7/Compiler_1/src/antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
+// Generated from antlr/HtmlJinjaParser.g4 by ANTLR 4.13.2
 package antlr;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -160,6 +160,18 @@ public interface HtmlJinjaParserListener extends ParseTreeListener {
 	 */
 	void exitEqInt(HtmlJinjaParser.EqIntContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code eqOr}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqOr(HtmlJinjaParser.EqOrContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqOr}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqOr(HtmlJinjaParser.EqOrContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code eqFilter}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
@@ -172,29 +184,41 @@ public interface HtmlJinjaParserListener extends ParseTreeListener {
 	 */
 	void exitEqFilter(HtmlJinjaParser.EqFilterContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code eqPar}
+	 * Enter a parse tree produced by the {@code eqNot}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void enterEqPar(HtmlJinjaParser.EqParContext ctx);
+	void enterEqNot(HtmlJinjaParser.EqNotContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code eqPar}
+	 * Exit a parse tree produced by the {@code eqNot}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void exitEqPar(HtmlJinjaParser.EqParContext ctx);
+	void exitEqNot(HtmlJinjaParser.EqNotContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code eqAdd}
+	 * Enter a parse tree produced by the {@code eqNeg}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void enterEqAdd(HtmlJinjaParser.EqAddContext ctx);
+	void enterEqNeg(HtmlJinjaParser.EqNegContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code eqAdd}
+	 * Exit a parse tree produced by the {@code eqNeg}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void exitEqAdd(HtmlJinjaParser.EqAddContext ctx);
+	void exitEqNeg(HtmlJinjaParser.EqNegContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code eqBool}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqBool(HtmlJinjaParser.EqBoolContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqBool}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqBool(HtmlJinjaParser.EqBoolContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code eqIndex}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
@@ -220,17 +244,17 @@ public interface HtmlJinjaParserListener extends ParseTreeListener {
 	 */
 	void exitEqId(HtmlJinjaParser.EqIdContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code eqMul}
+	 * Enter a parse tree produced by the {@code eqAnd}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void enterEqMul(HtmlJinjaParser.EqMulContext ctx);
+	void enterEqAnd(HtmlJinjaParser.EqAndContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code eqMul}
+	 * Exit a parse tree produced by the {@code eqAnd}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void exitEqMul(HtmlJinjaParser.EqMulContext ctx);
+	void exitEqAnd(HtmlJinjaParser.EqAndContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code eqString}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
@@ -256,17 +280,17 @@ public interface HtmlJinjaParserListener extends ParseTreeListener {
 	 */
 	void exitEqAttr(HtmlJinjaParser.EqAttrContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code eqCompare}
+	 * Enter a parse tree produced by the {@code eqTernary}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void enterEqCompare(HtmlJinjaParser.EqCompareContext ctx);
+	void enterEqTernary(HtmlJinjaParser.EqTernaryContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code eqCompare}
+	 * Exit a parse tree produced by the {@code eqTernary}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void exitEqCompare(HtmlJinjaParser.EqCompareContext ctx);
+	void exitEqTernary(HtmlJinjaParser.EqTernaryContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code eqDouble}
 	 * labeled alternative in {@link HtmlJinjaParser#expression}.
@@ -279,6 +303,148 @@ public interface HtmlJinjaParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitEqDouble(HtmlJinjaParser.EqDoubleContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code eqNone}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqNone(HtmlJinjaParser.EqNoneContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqNone}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqNone(HtmlJinjaParser.EqNoneContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code eqPar}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqPar(HtmlJinjaParser.EqParContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqPar}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqPar(HtmlJinjaParser.EqParContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code eqAdd}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqAdd(HtmlJinjaParser.EqAddContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqAdd}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqAdd(HtmlJinjaParser.EqAddContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code eqIs}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqIs(HtmlJinjaParser.EqIsContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqIs}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqIs(HtmlJinjaParser.EqIsContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code eqMul}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqMul(HtmlJinjaParser.EqMulContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqMul}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqMul(HtmlJinjaParser.EqMulContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code eqConcat}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqConcat(HtmlJinjaParser.EqConcatContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqConcat}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqConcat(HtmlJinjaParser.EqConcatContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code eqCall}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqCall(HtmlJinjaParser.EqCallContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqCall}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqCall(HtmlJinjaParser.EqCallContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code eqCompare}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqCompare(HtmlJinjaParser.EqCompareContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqCompare}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqCompare(HtmlJinjaParser.EqCompareContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code eqIn}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterEqIn(HtmlJinjaParser.EqInContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code eqIn}
+	 * labeled alternative in {@link HtmlJinjaParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitEqIn(HtmlJinjaParser.EqInContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link HtmlJinjaParser#arguments}.
+	 * @param ctx the parse tree
+	 */
+	void enterArguments(HtmlJinjaParser.ArgumentsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link HtmlJinjaParser#arguments}.
+	 * @param ctx the parse tree
+	 */
+	void exitArguments(HtmlJinjaParser.ArgumentsContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code kwArgument}
+	 * labeled alternative in {@link HtmlJinjaParser#argument}.
+	 * @param ctx the parse tree
+	 */
+	void enterKwArgument(HtmlJinjaParser.KwArgumentContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code kwArgument}
+	 * labeled alternative in {@link HtmlJinjaParser#argument}.
+	 * @param ctx the parse tree
+	 */
+	void exitKwArgument(HtmlJinjaParser.KwArgumentContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code posArgument}
+	 * labeled alternative in {@link HtmlJinjaParser#argument}.
+	 * @param ctx the parse tree
+	 */
+	void enterPosArgument(HtmlJinjaParser.PosArgumentContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code posArgument}
+	 * labeled alternative in {@link HtmlJinjaParser#argument}.
+	 * @param ctx the parse tree
+	 */
+	void exitPosArgument(HtmlJinjaParser.PosArgumentContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link HtmlJinjaParser#jinja_statement}.
 	 * @param ctx the parse tree

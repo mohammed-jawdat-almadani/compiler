@@ -1,0 +1,8 @@
+<h1>{{ shop_title }}</h1>            {# ERROR 6: shop_title is not passed by render_template #}
+{% for product in unknown_list %}    {# ERROR 7: unknown_list is undefined #}
+  <div>{{ product.name }}</div>
+{% endfor %}
+{% if products|length > 0 %}
+  <p>{{ products[0].name }} costs {{ products[0].price }}</p>
+  <p>{{ price_label }}</p>            {# ERROR 8: price_label is undefined #}
+{% endif %}

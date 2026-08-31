@@ -1,0 +1,16 @@
+{% extends "base.jinja" %}
+{% block title %}{{ item.name if item else 'Not found' }}{% endblock %}
+
+{% block content %}
+{% if item %}
+<h1>{{ item.name }}</h1>
+<p>Price: {{ item.price }} {{ currency }}</p>
+<p>Tags: {% for t in item.tags %}{{ t }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+<p>Stock: {{ item.stock }}</p>
+{% else %}
+<h1>Product not found</h1>
+{% endif %}
+<a href="{{ url_for('index') }}">Back</a>
+{% endblock %}
+
+{% block footer %}Product page{% endblock %}

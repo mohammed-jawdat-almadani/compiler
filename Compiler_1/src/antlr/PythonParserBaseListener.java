@@ -1,4 +1,4 @@
-// Generated from C:/Users/NEW MSI/IdeaProjects/Flask-and-Jinja2-with-HTML-and-CSS1/Compiler_1/src/antlr/PythonParser.g4 by ANTLR 4.13.2
+// Generated from antlr/PythonParser.g4 by ANTLR 4.13.2
 package antlr;
 
 import org.antlr.v4.runtime.ParserRuleContext;

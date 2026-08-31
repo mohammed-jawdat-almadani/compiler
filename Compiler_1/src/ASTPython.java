@@ -2,46 +2,57 @@ import antlr.PythonLexer;
 import antlr.PythonParser;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
+import output.CompilerReport;
 import python.ast.ASTNode;
+import python.semantic.PythonSemanticAnalyzer;
 import python.visitor.ASTBuilder;
+import symboltable.SymbolTable;
 
 import java.io.IOException;
 
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
+/** Front end for Python files: lexer -> parser -> AST -> semantic analysis. */
 public class ASTPython {
-    public static void ParseFile(String path) {
+
+    /** Backwards-compatible entry point (prints the AST, reports to the console). */
+    public static ASTNode ParseFile(String path, SymbolTable globalSymTab) {
+        CompilerReport report = new CompilerReport();
+        ASTNode node = parseFile(path, globalSymTab, report, true);
+        return node;
+    }
+
+    public static ASTNode parseFile(String path, SymbolTable globalSymTab, CompilerReport report, boolean printTree) {
+        String fileName = new java.io.File(path).getName();
         try {
             CharStream input = fromFileName(path);
             PythonLexer lexer = new PythonLexer(input);
-            CommonTokenStream token = new CommonTokenStream(lexer);
-
-            PythonParser parser = new PythonParser(token);
-
+            lexer.removeErrorListeners();
+            lexer.addErrorListener(report.listenerFor(fileName));
+            CommonTokenStream tokens = new CommonTokenStream(lexer);
+            PythonParser parser = new PythonParser(tokens);
             parser.removeErrorListeners();
-
-            parser.addErrorListener(new BaseErrorListener() {
-                @Override
-                public void syntaxError(Recognizer<?, ?> recognizer,
-                                        Object offendingSymbol,
-                                        int line, int charPositionInLine,
-                                        String msg,
-                                        RecognitionException e) {
-                    System.err.println("SYNTAX ERROR at " + line + ":" + charPositionInLine + " -> " + msg);
-                }
-            });
+            parser.addErrorListener(report.listenerFor(fileName));
 
             ParseTree tree = parser.file_input();
-            ASTBuilder astBuilder = new ASTBuilder();
-            ASTNode astNode = astBuilder.visit(tree);
-            astNode.printTree("");
+            ASTNode astNode = new ASTBuilder().visit(tree);
+            if (printTree && astNode != null) astNode.printTree("");
+            report.fileAnalyzed(fileName);
 
-            System.out.println("\n=== Symbol Table ===");
-            astBuilder.getSymbolTable().printSymbolTable();
-
+            if (astNode != null) {
+                PythonSemanticAnalyzer analyzer = new PythonSemanticAnalyzer(globalSymTab);
+                analyzer.analyze(astNode);
+                for (String err : analyzer.getErrors()) report.semanticError(fileName, err);
+            }
+            return astNode;
         } catch (IOException e) {
-            e.printStackTrace();
+            report.syntaxError(fileName, "cannot read file: " + e.getMessage());
+            return null;
+        } catch (RuntimeException e) {
+            // A broken parse tree (after syntax errors) can make the AST builder fail.
+            if (report.getSyntaxErrors().isEmpty()) report.syntaxError(fileName, "could not build AST: " + e.getClass().getSimpleName() + (e.getMessage() != null ? " - " + e.getMessage() : ""));
+            else report.log("AST for " + fileName + " not built because of the syntax errors above");
+            return null;
         }
     }
 }
-

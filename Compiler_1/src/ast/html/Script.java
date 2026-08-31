@@ -5,6 +5,7 @@ import ast.NodeVisitor;
 
 public class Script extends Node {
     public String content;
+    public String openTag = "<script>";
 
     public Script(int line, int column, String content) {
         super(line, column);
