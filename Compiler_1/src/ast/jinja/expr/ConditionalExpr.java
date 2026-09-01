@@ -1,6 +1,6 @@
 package ast.jinja.expr;
 
-/** eqTernary: {@code value if condition else otherwise}. */
+// eqTernary: value if condition else otherwise
 public class ConditionalExpr extends ExprNode {
     public final ExprNode value;
     public final ExprNode condition;

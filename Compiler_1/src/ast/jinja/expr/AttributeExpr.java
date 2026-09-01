@@ -1,6 +1,6 @@
 package ast.jinja.expr;
 
-/** eqAttr: {@code object.name}. */
+// eqAttr: object.name
 public class AttributeExpr extends ExprNode {
     public final ExprNode object;
     public final String name;

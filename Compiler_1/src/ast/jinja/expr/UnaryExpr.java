@@ -1,6 +1,6 @@
 package ast.jinja.expr;
 
-/** eqNot / eqNeg: {@code not x}, {@code -x}. */
+// eqNot / eqNeg: not x, -x
 public class UnaryExpr extends ExprNode {
     public final String operator;
     public final ExprNode operand;

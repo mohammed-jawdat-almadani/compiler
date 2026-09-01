@@ -27,11 +27,9 @@ public class BlockStatement extends Node {
             for (Node child : body) {
                 if (child == null) continue;
                 try {
-                    // if the child node has its own printTree(indent) method
                     child.getClass().getMethod("printTree", String.class)
                             .invoke(child, childIndent);
                 } catch (Exception e) {
-                    // fallback: print child.toString()
                     System.out.println(childIndent + child.toString());
                 }
             }
@@ -60,18 +58,16 @@ public String toString() {
     for (int i = 0; i < body.size(); i++) {
         Node child = body.get(i);
         sb.append("\n");
-        sb.append("    "); // indent for each child line
+        sb.append("    ");
 
         if (child == null) {
             sb.append("<null>");
             continue;
         }
 
-        // Child string (may itself be multi-line)
         String childStr = child.toString();
         if (childStr == null) childStr = "<null-toString>";
 
-        // Indent multi-line child outputs nicely
         sb.append(indentMultiline(childStr, "    "));
     }
 
@@ -79,12 +75,10 @@ public String toString() {
 }
 
 private static String indentMultiline(String s, String indent) {
-    // First line should not get extra indent (already appended by caller),
-    // but subsequent lines should.
     int idx = s.indexOf('\n');
     if (idx < 0) return s;
 
-    String[] lines = s.split("\\R", -1); // keep trailing empty lines if any
+    String[] lines = s.split("\\R", -1);
     StringBuilder out = new StringBuilder();
     out.append(lines[0]);
     for (int i = 1; i < lines.length; i++) {

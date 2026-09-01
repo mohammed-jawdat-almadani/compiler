@@ -13,14 +13,8 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Renders a parsed Jinja template (the HtmlDocument AST) into final HTML by
- * substituting the context data produced by {@link PythonContextEvaluator}.
- *
- * Handles {@code {{ expr }}}, {@code {% for %}}, {@code {% if/elif/else %}},
- * {@code {% set %}}, {@code {% while %}} and template inheritance
- * ({@code {% extends %}} / {@code {% block %}}).
- */
+// Renders a parsed template into HTML using the context from PythonContextEvaluator.
+// Handles {{ }}, for, if/elif/else, set, while and extends/block inheritance.
 public class JinjaRenderer {
 
     private final Map<String, Node> templates;      // template name -> parsed AST
@@ -39,12 +33,10 @@ public class JinjaRenderer {
     public JinjaExpressionEvaluator getEvaluator() { return evaluator; }
     public List<String> getWarnings() { return warnings; }
 
-    /** Registers a global function available to every template (e.g. url_for). */
+    // global function available to every template (url_for)
     public void registerFunction(String name, Function<List<Object>, Object> fn) { evaluator.registerFunction(name, fn); }
 
-    /* ------------------------------------------------------------------ */
-    /*  Entry point                                                        */
-    /* ------------------------------------------------------------------ */
+    // Entry point
 
     public String render(String templateName, Map<String, Object> context) {
         Node doc = templates.get(templateName);
@@ -56,11 +48,7 @@ public class JinjaRenderer {
         return out.toString();
     }
 
-    /**
-     * Renders a document. If it {% extends %} a parent, its {% block %}s are collected
-     * (child blocks win over blocks already collected from a deeper child) and the
-     * parent is rendered instead, exactly like Jinja's inheritance model.
-     */
+    // with {% extends %}: collect this document's blocks (child wins) and render the parent instead
     private void renderDocument(Node doc, Scope scope, Map<String, BlockStatement> blocks, StringBuilder out, String name) {
         List<Node> children = doc instanceof HtmlDocument ? ((HtmlDocument) doc).children : Collections.singletonList(doc);
 
@@ -99,9 +87,7 @@ public class JinjaRenderer {
         return out;
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Node rendering                                                     */
-    /* ------------------------------------------------------------------ */
+    // Node rendering
 
     private void renderNodes(List<Node> nodes, Scope scope, Map<String, BlockStatement> blocks, StringBuilder out) {
         if (nodes == null) return;
@@ -226,9 +212,7 @@ public class JinjaRenderer {
         }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Attributes                                                         */
-    /* ------------------------------------------------------------------ */
+    // Attributes
 
     private void renderAttribute(Node a, Scope scope, StringBuilder out) {
         if (!(a instanceof HtmlAttribute)) {
@@ -260,7 +244,7 @@ public class JinjaRenderer {
         out.append("=\"").append(value.replace("\"", "&#34;")).append('"');
     }
 
-    /** Replaces every {{ expr }} occurrence inside raw text (attribute values, script bodies). */
+    // replace every {{ expr }} inside raw text (attribute values, script bodies)
     private String substituteInline(String text, Scope scope) {
         if (text == null || !text.contains("{{")) return text == null ? "" : text;
         Matcher m = INLINE_EXPR.matcher(text);
@@ -273,11 +257,9 @@ public class JinjaRenderer {
         return sb.toString();
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Helpers                                                            */
-    /* ------------------------------------------------------------------ */
+    // Helpers
 
-    /** Evaluates a JinjaExpression node: its expression AST when the parser built one, else its text. */
+    // evaluate a JinjaExpression: its tree when the parser built one, else its text
     private Object eval(JinjaExpression node, Scope scope) {
         try {
             return node.tree != null ? evaluator.evaluate(node.tree, scope) : evaluator.evaluate(node.expression, scope);

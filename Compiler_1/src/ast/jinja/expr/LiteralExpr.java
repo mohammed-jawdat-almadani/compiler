@@ -1,6 +1,6 @@
 package ast.jinja.expr;
 
-/** eqInt / eqDouble / eqString / eqBool / eqNone: a constant. kind is int, float, string, bool or none. */
+// eqInt / eqDouble / eqString / eqBool / eqNone: a constant. kind is int, float, string, bool or none
 public class LiteralExpr extends ExprNode {
     public final Object value;
     public final String kind;

@@ -10,7 +10,7 @@ public abstract class BaseNodeVisitor<T> implements NodeVisitor<T> {
         return null;
     }
 
-    /* ================= HTML ================= */
+    // HTML
     @Override
     public T visitHtmlDocument(HtmlDocument n) {
         for (Node c : n.children) {
@@ -69,7 +69,7 @@ public abstract class BaseNodeVisitor<T> implements NodeVisitor<T> {
         return defaultVisit(n);
     }
 
-    /* ================= JINJA ================= */
+    // Jinja
     @Override
     public T visitJinjaExpression(JinjaExpression n) {
         return defaultVisit(n);

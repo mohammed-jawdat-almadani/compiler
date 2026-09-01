@@ -4,20 +4,12 @@ import python.ast.*;
 
 import java.util.*;
 
-/**
- * Generation-phase interpreter for the Flask back end.
- *
- * It does NOT execute Flask. It walks the Python AST produced by the front end,
- * evaluates the module-level data definitions (lists, dicts, literals, imports of
- * other project modules), then interprets every route function to discover the
- * {@code render_template(...)} calls and the exact values passed to each template.
- *
- * The result ({@link RenderCall}) is the "Context Data" that the Jinja renderer
- * substitutes into the templates.
- */
+// Interpreter for the Flask back end, used at generation time. It never runs Flask: it evaluates
+// the module data and each route function to find the render_template calls and the values
+// passed to them (the context data).
 public class PythonContextEvaluator {
 
-    /** One discovered render_template(...) call with its evaluated keyword arguments. */
+    // one render_template call with its evaluated keyword arguments
     public static class RenderCall {
         public final String endpoint;          // Python function name
         public final String routePath;         // e.g. "/edit/<int:product_id>" (may be null)
@@ -35,7 +27,7 @@ public class PythonContextEvaluator {
         }
     }
 
-    /** A user-defined Python function together with the globals it closes over. */
+    // user function plus the globals it closes over
     private static class PyFunction {
         final FunctionDefNode def;
         final Map<String, Object> globals;
@@ -43,7 +35,7 @@ public class PythonContextEvaluator {
         @Override public String toString() { return "<function " + def.name + ">"; }
     }
 
-    /** Marker object returned by render_template(...) during interpretation. */
+    // what render_template returns during interpretation
     private static class RenderResult {
         final String template; final Map<String, Object> context;
         RenderResult(String t, Map<String, Object> c) { template = t; context = c; }
@@ -57,7 +49,7 @@ public class PythonContextEvaluator {
     private static class BreakSignal extends RuntimeException { BreakSignal() { super(null, null, false, false); } }
     private static class ContinueSignal extends RuntimeException { ContinueSignal() { super(null, null, false, false); } }
 
-    /** Placeholder for the Flask application object. */
+    // stands in for the Flask app object
     private static class FlaskApp { @Override public String toString() { return "<Flask app>"; } }
 
     private final Map<String, ASTNode> modules;            // module name -> parsed AST
@@ -79,15 +71,13 @@ public class PythonContextEvaluator {
     public Map<String, Object> getGlobals(String module) { return moduleGlobals.get(module); }
     public Map<String, ASTNode> getModules() { return modules; }
 
-    /* ------------------------------------------------------------------ */
-    /*  Entry point                                                        */
-    /* ------------------------------------------------------------------ */
+    // Entry point
 
-    /** Evaluates the given module (usually "app") and interprets its route functions. */
+    // evaluate the module (usually app) and run its route functions
     public void run(String mainModule) {
         Map<String, Object> globals = evaluateModule(mainModule);
 
-        // Interpret every route function (and any other function that renders a template).
+        // run every function that renders a template
         for (Object v : new ArrayList<>(globals.values())) {
             if (!(v instanceof PyFunction)) continue;
             PyFunction fn = (PyFunction) v;
@@ -96,8 +86,7 @@ public class PythonContextEvaluator {
                 continue;
             }
 
-            // A route with a parameter (edit_product(product_id)) is rendered once per candidate value,
-            // e.g. once per product id, so that every link on the site has a page to point at.
+            // a route with a parameter is rendered once per candidate value (one page per product id)
             List<Map<String, Object>> samples = sampleArguments(fn, globals);
             for (Map<String, Object> sample : samples) {
                 lastRender = null;
@@ -119,26 +108,20 @@ public class PythonContextEvaluator {
         }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  On-demand execution (used by DevServer for POST / delete requests)  */
-    /* ------------------------------------------------------------------ */
+    // On-demand execution (used by DevServer for POST / delete requests)
 
     private String requestMethod = "GET";
     private Map<String, Object> requestForm = new LinkedHashMap<>();
     private String lastRedirect = null;
     private Map<String, Object> lastRedirectParams = new LinkedHashMap<>();
 
-    /** The endpoint a redirect(url_for(...)) pointed at during the last invokeRoute, or null. */
+    // endpoint the last invokeRoute redirected to, or null
     public String getLastRedirect() { return lastRedirect; }
-    /** The keyword arguments of that url_for call (e.g. {product_id=2}). */
+    // keyword args of that url_for call, e.g. {product_id=2}
     public Map<String, Object> getLastRedirectParams() { return lastRedirectParams; }
 
-    /**
-     * Executes one route function with a given HTTP method, route parameters and form data,
-     * exactly as Flask would dispatch the request. Mutations the function makes to the module
-     * data (append, item assignment, `global` rebinding) stay in the module globals and can be
-     * persisted with {@link #snapshotModule(String)}.
-     */
+    // run one route function the way Flask would dispatch it: given method, route params and form.
+    // Mutations (append, item assignment, global rebinding) stay in the module globals, see snapshotModule
     public Object invokeRoute(String endpoint, Map<String, Object> params, String method, Map<String, Object> form) {
         Map<String, Object> globals = evaluateModule("app");
         Object fnObj = globals.get(endpoint);
@@ -159,11 +142,7 @@ public class PythonContextEvaluator {
         }
     }
 
-    /**
-     * Current values of a data module's variables, with the main module's rebinding of the same
-     * names taken into account (a `global products; products = new_list` in app.py must win over
-     * the stale list still referenced by data.py).
-     */
+    // current values of a data module, letting app.py's global rebinding of the same name win
     public Map<String, Object> snapshotModule(String module) {
         Map<String, Object> data = moduleGlobals.get(module);
         if (data == null) return null;
@@ -178,9 +157,7 @@ public class PythonContextEvaluator {
         return out;
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Modules                                                            */
-    /* ------------------------------------------------------------------ */
+    // Modules
 
     private Map<String, Object> evaluateModule(String name) {
         if (moduleGlobals.containsKey(name)) return moduleGlobals.get(name);
@@ -196,9 +173,7 @@ public class PythonContextEvaluator {
         return globals;
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Statements                                                         */
-    /* ------------------------------------------------------------------ */
+    // Statements
 
     private void execBlock(ASTNode block, Map<String, Object> locals, Map<String, Object> globals) {
         if (block == null) return;
@@ -215,7 +190,7 @@ public class PythonContextEvaluator {
                 for (Map.Entry<String, String> e : n.importedItems.entrySet()) {
                     locals.put(e.getValue(), other.get(e.getKey()));
                 }
-            } // flask / stdlib imports: names resolve through builtins
+            } // flask / stdlib imports resolve through the builtins
         } else if (s instanceof ImportNode) {
             // nothing to do
         } else if (s instanceof AssignmentNode) {
@@ -245,7 +220,7 @@ public class PythonContextEvaluator {
                 assign(n.target, item, locals, globals);
                 try { execBlock(n.body, locals, globals); }
                 catch (BreakSignal b) { break; }
-                catch (ContinueSignal c) { /* next */ }
+                catch (ContinueSignal c) { }
             }
         } else if (s instanceof WhileNode) {
             WhileNode n = (WhileNode) s;
@@ -254,11 +229,11 @@ public class PythonContextEvaluator {
                 if (++guard > 10000) throw new RuntimeException("while loop did not terminate (line " + n.getLineNumber() + ")");
                 try { execBlock(n.body, locals, globals); }
                 catch (BreakSignal b) { break; }
-                catch (ContinueSignal c) { /* next */ }
+                catch (ContinueSignal c) { }
             }
         } else if (s instanceof ReturnNode) {
             ReturnNode n = (ReturnNode) s;
-            if (locals == globals) { // 'return' at module level: reported by the semantic analyzer; keep evaluating
+            if (locals == globals) { // module-level return: already reported by the analyzer, keep going
                 log.add("WARNING: 'return' outside a function at line " + n.getLineNumber() + " ignored");
                 return;
             }
@@ -277,7 +252,7 @@ public class PythonContextEvaluator {
         } else if (s instanceof ExpressionNode) {
             eval(s, locals, globals);
         } else {
-            // Unsupported statement types (assert, del, raise, ...) are ignored during generation.
+            // assert, del, raise ... are ignored during generation
         }
     }
 
@@ -315,9 +290,7 @@ public class PythonContextEvaluator {
         }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Expressions                                                        */
-    /* ------------------------------------------------------------------ */
+    // Expressions
 
     public Object eval(ASTNode e, Map<String, Object> locals, Map<String, Object> globals) {
         if (e == null) return null;
@@ -413,9 +386,7 @@ public class PythonContextEvaluator {
         return s.replace("\\n", "\n").replace("\\t", "\t").replace("\\\"", "\"").replace("\\'", "'");
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Calls                                                              */
-    /* ------------------------------------------------------------------ */
+    // Calls
 
     private Object call(FunctionCallNode c, Map<String, Object> locals, Map<String, Object> globals) {
         List<Object> args = new ArrayList<>();
@@ -425,7 +396,7 @@ public class PythonContextEvaluator {
             else args.add(eval(a, locals, globals));
         }
 
-        // Method call: obj.method(...)
+        // obj.method(...)
         if (c.functionName instanceof AttributeAccessNode) {
             AttributeAccessNode a = (AttributeAccessNode) c.functionName;
             Object obj = eval(a.object, locals, globals);
@@ -433,7 +404,7 @@ public class PythonContextEvaluator {
             return callMethod(obj, a.attributeName, args, kwargs);
         }
 
-        // Plain call: name(...)
+        // name(...)
         if (c.functionName instanceof IdentifierNode) {
             String name = ((IdentifierNode) c.functionName).name;
             Object target = locals.containsKey(name) ? locals.get(name) : globals.get(name);
@@ -573,7 +544,7 @@ public class PythonContextEvaluator {
             }
         }
         if (obj instanceof FlaskApp) {
-            // app.route(...) used as a decorator -> identity; app.run() -> nothing
+            // app.route(...) as a decorator / app.run(): nothing to do
             return null;
         }
         log.add("WARNING: unsupported method '" + method + "' on " + typeName(obj) + " evaluated as None");
@@ -584,7 +555,7 @@ public class PythonContextEvaluator {
         switch (name) {
             case "__name__": return "__main__";
             case "request": {
-                // Generation happens on the default GET path with no submitted form; DevServer overrides both.
+                // generation runs on the GET path with no form; DevServer overrides both
                 Map<String, Object> req = new LinkedHashMap<>();
                 req.put("method", requestMethod);
                 req.put("form", requestForm);
@@ -599,19 +570,13 @@ public class PythonContextEvaluator {
         }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Sample route parameters                                            */
-    /* ------------------------------------------------------------------ */
+    // Sample route parameters
 
-    /**
-     * Route functions such as edit_product(product_id) need a value for their parameter.
-     * We pick a representative value from the data: for "<x>_id" look for a global list
-     * whose items are dicts with an "id" key and use the first id; otherwise use 1.
-     */
+    // pick values for a route parameter: for "<x>_id" use the ids of the global list named like x, else 1
     private List<Map<String, Object>> sampleArguments(PyFunction fn, Map<String, Object> globals) {
         List<Map<String, Object>> out = new ArrayList<>();
         if (fn.def.parameters.isEmpty()) { out.add(new LinkedHashMap<>()); return out; }
-        String p = fn.def.parameters.get(0);          // Flask routes in this project take at most one parameter
+        String p = fn.def.parameters.get(0);          // routes here take at most one parameter
         List<Object> candidates = new ArrayList<>();
         String base = p.endsWith("_id") ? p.substring(0, p.length() - 3) : p;
         for (Map.Entry<String, Object> g : globals.entrySet()) {
@@ -642,9 +607,7 @@ public class PythonContextEvaluator {
         return false;
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Value helpers (shared with the Jinja evaluator)                    */
-    /* ------------------------------------------------------------------ */
+    // Value helpers (shared with the Jinja evaluator)
 
     public static Object getAttribute(Object obj, String name) {
         if (obj instanceof Map) return ((Map<?, ?>) obj).get(name);

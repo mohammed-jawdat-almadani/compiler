@@ -13,7 +13,7 @@ import java.io.IOException;
 
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
-/** Front end for CSS files: lexer -> parser -> AST -> symbol collection. */
+// Front end for CSS files: lexer -> parser -> AST -> symbol collection
 public class ASTCss {
 
     public static Node parseFile(String path, SymbolTable globalSymTab) throws Exception {

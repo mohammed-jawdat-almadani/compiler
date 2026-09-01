@@ -17,24 +17,9 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Development server that makes the generated site "live" without running Flask.
- *
- *  GET  /page.html          -> serves the generated file from output/
- *  POST /page.html          -> the page was produced by a route; that route function is EXECUTED
- *                              by the translator's Python evaluator with request.method = "POST"
- *                              and request.form = the submitted fields (append / item assignment /
- *                              `global` rebinding all work), the data module is written back to
- *                              disk, the whole site is REGENERATED, and the browser is redirected
- *                              to the page the route redirected to.
- *  GET  /delete/3           -> a route path with no template (redirect-only route): same as above.
- *
- * The compiler is therefore the runtime: every change = evaluate route -> persist data.py ->
- * regenerate all pages -> redirect. Data must live in a module other than app.py (e.g. data.py)
- * so that it can be rewritten without touching the program.
- *
- * Usage: java DevServer [projectDir] [outputRoot] [port]     (defaults: ../PROJECT1, parent, 8000)
- */
+// Dev server for the generated site. GET serves output/; a POST to a generated page (or a GET
+// to a redirect-only route such as /delete/3) runs the route with our evaluator, rewrites data.py,
+// regenerates the site and redirects. Usage: java DevServer [projectDir] [outputRoot] [port]
 public class DevServer {
 
     private final Path project, outputRoot, outputDir;
@@ -60,13 +45,11 @@ public class DevServer {
 
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/", this::handle);
-        server.setExecutor(Executors.newSingleThreadExecutor());   // one request at a time: compiles are not concurrent
+        server.setExecutor(Executors.newSingleThreadExecutor());   // one request at a time, compiles must not overlap
         server.start();
         System.out.println("\nLive site: http://localhost:" + port + "/   (Ctrl+C to stop)");
         System.out.println("Every add / edit / delete runs the route in the evaluator, rewrites the data module, regenerates output/ and redirects.\n");
     }
-
-    /* ------------------------------------------------------------------ */
 
     private void handle(HttpExchange ex) throws IOException {
         String method = ex.getRequestMethod();
@@ -75,7 +58,7 @@ public class DevServer {
             if (path.equals("/")) { redirect(ex, "/index.html"); return; }
             String name = path.substring(1);
 
-            // 1. A form posted to a generated page -> execute the route that produced that page
+            // 1. form posted to a generated page: run the route that produced it
             if (method.equalsIgnoreCase("POST") && current.pages.containsKey(name)) {
                 RenderCall rc = current.pages.get(name);
                 Map<String, Object> form = parseForm(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
@@ -83,14 +66,14 @@ public class DevServer {
                 return;
             }
 
-            // 2. A route path such as /delete/3 -> match against the routes discovered by the evaluator
+            // 2. a route path such as /delete/3
             Map.Entry<String, Map<String, Object>> match = matchRoute(path);
             if (match != null) {
                 runRouteAndRegenerate(ex, match.getKey(), match.getValue(), method, new LinkedHashMap<>());
                 return;
             }
 
-            // 3. Otherwise serve the generated file
+            // 3. plain file from output/
             Path file = outputDir.resolve(name).normalize();
             if (!file.startsWith(outputDir) || !Files.isRegularFile(file)) { send(ex, 404, "text/plain", "Not found: " + path); return; }
             byte[] body = Files.readAllBytes(file);
@@ -104,15 +87,15 @@ public class DevServer {
         }
     }
 
-    /** Execute the route with the evaluator, persist the data module, regenerate, redirect. */
+    // run the route, persist the data module, regenerate, redirect
     private void runRouteAndRegenerate(HttpExchange ex, String endpoint, Map<String, Object> params, String method, Map<String, Object> form) throws IOException {
         System.out.println("\n=== " + method + " " + ex.getRequestURI().getPath() + " -> " + endpoint + "(" + params + ")" + (form.isEmpty() ? "" : " form=" + form) + " ===");
 
-        // fresh evaluator over the current sources, so module state is exactly what is on disk
+        // fresh evaluator so module state matches what is on disk
         PythonContextEvaluator evaluator = new PythonContextEvaluator(current.evaluator.getModules(), new ArrayList<>());
         Object result = evaluator.invokeRoute(endpoint, params, method, form);
 
-        // persist every data module (all *.py except app.py)
+        // persist every data module (every .py except app.py)
         int persisted = 0;
         for (String module : current.evaluator.getModules().keySet()) {
             if (module.equals("app")) continue;
@@ -124,7 +107,7 @@ public class DevServer {
         }
         if (persisted == 0) System.out.println("WARNING: no data module to persist (put the data in data.py) - the change will not survive regeneration");
 
-        // regenerate the whole site from the updated sources
+        // regenerate from the updated sources
         current = Main.compile(project, outputRoot, false, false);
         if (current.exitCode != 0) {
             String report = new String(Files.readAllBytes(outputRoot.resolve("compiler_output/semantic_report.txt")), StandardCharsets.UTF_8);
@@ -132,7 +115,7 @@ public class DevServer {
             return;
         }
 
-        // redirect: to the page the route redirected to, or to the page the route rendered
+        // redirect to the page the route redirected to, else the one it rendered
         String target = "/index.html";
         String redirectedTo = evaluator.getLastRedirect();
         if (redirectedTo != null && current.endpointToTemplate.containsKey(redirectedTo))
@@ -141,8 +124,6 @@ public class DevServer {
         System.out.println("redirect -> " + target);
         redirect(ex, target);
     }
-
-    /* ------------------------------------------------------------------ */
 
     private Map.Entry<String, Map<String, Object>> matchRoute(String path) {
         for (Map.Entry<String, String> r : current.evaluator.getRoutes().entrySet()) {

@@ -13,7 +13,7 @@ public class PythonSemanticAnalyzer {
     private int loopDepth = 0;
     private int functionDepth = 0;
 
-    /** Names that Python (and Flask) provide without a definition in the source file. */
+    // names Python/Flask provide without a definition in the source
     private static final String[] BUILTINS = {
         "print", "len", "str", "int", "float", "bool", "list", "dict", "set", "tuple", "range", "enumerate",
         "sorted", "reversed", "min", "max", "sum", "abs", "round", "isinstance", "type", "input", "open",
@@ -210,7 +210,7 @@ public class PythonSemanticAnalyzer {
             if (sym == null) {
                 reportError(node.getLineNumber(), "Call to undefined function '" + funcName + "'.");
             } else if (sym instanceof FunctionSymbol) {
-                // Not enforcing parameter counts since we don't store them yet
+                // parameter counts are not checked
             }
         }
     }

@@ -119,7 +119,7 @@ public class CssVisitor extends cssParserBaseVisitor<Node> {
         return new CssKeyframeBlock(
                 ctx.getStart().getLine(),
                 ctx.getStart().getCharPositionInLine(),
-                selectors,       // نرسل القائمة بدل String واحد
+                selectors,       // pass the list, not a single string
                 declarations
         );
     }
@@ -183,7 +183,7 @@ public class CssVisitor extends cssParserBaseVisitor<Node> {
         return new CssFeatureValueDefinition(ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine(), name, values);
     }
 
-    // Fallback
+    // fallback
     @Override
     public Node visitAny_(cssParser.Any_Context ctx) {
         return null;

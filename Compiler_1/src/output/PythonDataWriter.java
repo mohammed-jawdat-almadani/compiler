@@ -3,18 +3,8 @@ package output;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Serializes evaluated module data (the Java values produced by PythonContextEvaluator)
- * back to Python source, e.g.
- *
- * <pre>
- * products = [
- *     {"id": 1, "name": "Laptop", "price": 1200},
- * ]
- * </pre>
- *
- * Used by DevServer to persist the data module after a route mutated it.
- */
+// Writes evaluated module data back as Python source (products = [...]).
+// DevServer uses it to persist data.py after a route changed it.
 public class PythonDataWriter {
 
     public static String module(Map<String, Object> globals) {

@@ -12,10 +12,10 @@ import java.io.IOException;
 
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
-/** Front end for Python files: lexer -> parser -> AST -> semantic analysis. */
+// Front end for Python files: lexer -> parser -> AST -> semantic analysis
 public class ASTPython {
 
-    /** Backwards-compatible entry point (prints the AST, reports to the console). */
+    // old entry point, prints the AST to the console
     public static ASTNode ParseFile(String path, SymbolTable globalSymTab) {
         CompilerReport report = new CompilerReport();
         ASTNode node = parseFile(path, globalSymTab, report, true);
@@ -49,7 +49,7 @@ public class ASTPython {
             report.syntaxError(fileName, "cannot read file: " + e.getMessage());
             return null;
         } catch (RuntimeException e) {
-            // A broken parse tree (after syntax errors) can make the AST builder fail.
+            // a broken parse tree (after syntax errors) can crash the builder
             if (report.getSyntaxErrors().isEmpty()) report.syntaxError(fileName, "could not build AST: " + e.getClass().getSimpleName() + (e.getMessage() != null ? " - " + e.getMessage() : ""));
             else report.log("AST for " + fileName + " not built because of the syntax errors above");
             return null;

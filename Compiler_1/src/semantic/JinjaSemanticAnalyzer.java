@@ -12,15 +12,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Semantic checks for Jinja templates.
- *
- * A variable used in a template is valid if it is one of:
- *   - a variable passed by the Python side through render_template(...)  (the template context),
- *   - a loop target or {% set %} variable in an enclosing Jinja scope (tracked via the symbol table),
- *   - a Jinja/Flask builtin (url_for, loop, request, range, ...),
- *   - a symbol already known in the global symbol table.
- */
+// Semantic checks for templates. A name is valid if Python passes it through render_template,
+// it is a for/set variable in an enclosing scope, it is a Jinja/Flask builtin, or the symbol table knows it.
 public class JinjaSemanticAnalyzer extends SymbolTableVisitor {
 
     private static final Set<String> BUILTINS = new HashSet<>(Arrays.asList(
@@ -48,17 +41,12 @@ public class JinjaSemanticAnalyzer extends SymbolTableVisitor {
         errors.add("line " + line + ":" + col + " " + message);
     }
 
-    /* ------------------------------------------------------------------ */
-
     private boolean isDefined(String name) {
         return BUILTINS.contains(name) || contextVars.contains(name) || getSymbolTable().resolve(name) != null;
     }
 
-    /**
-     * Extracts the free variable names referenced by an expression: every identifier that is
-     * not a keyword/literal, not preceded by '.' (attribute), not a filter/test name and not
-     * a keyword-argument name (followed by '=').
-     */
+    // free variable names of an expression text: identifiers that are not keywords, attributes,
+    // filter/test names or keyword-argument names
     static List<String> freeVariables(String expr) {
         List<String> out = new ArrayList<>();
         if (expr == null) return out;
@@ -83,7 +71,7 @@ public class JinjaSemanticAnalyzer extends SymbolTableVisitor {
         return out;
     }
 
-    /** Free variables of an expression AST: every IdentifierExpr (attribute names, filters and tests are not identifiers). */
+    // free variables of an expression tree: every IdentifierExpr
     static void freeVariables(ExprNode n, List<String> out) {
         if (n == null) return;
         if (n instanceof IdentifierExpr) { String id = ((IdentifierExpr) n).name; if (!out.contains(id)) out.add(id); }
@@ -121,8 +109,6 @@ public class JinjaSemanticAnalyzer extends SymbolTableVisitor {
         }
     }
 
-    /* ------------------------------------------------------------------ */
-
     @Override
     public Void visitJinjaExpression(JinjaExpression node) {
         checkExpression(node, "variable");
@@ -155,11 +141,11 @@ public class JinjaSemanticAnalyzer extends SymbolTableVisitor {
 
     @Override
     public Void visitForStatement(ForStatement node) {
-        // the iterable expression is checked by visitJinjaExpression; super enters a scope and defines the loop targets
+        // the iterable is checked by visitJinjaExpression; super opens a scope and defines the targets
         return super.visitForStatement(node);
     }
 
-    // if / elif / while conditions are JinjaExpression nodes: the base visitor routes them to visitJinjaExpression.
+    // if / elif / while conditions are JinjaExpression nodes, the base visitor routes them there
 
     @Override
     public Void visitAssignmentStatement(AssignmentStatement node) {

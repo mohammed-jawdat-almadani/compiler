@@ -3,7 +3,7 @@ package ast.jinja.expr;
 import java.util.List;
 import java.util.Map;
 
-/** eqCall: {@code callee(arg, key=value)} — e.g. url_for('static', filename='style.css'). */
+// eqCall: callee(arg, key=value) — e.g. url_for('static', filename='style.css')
 public class CallExpr extends ExprNode {
     public final ExprNode callee;
     public final List<ExprNode> args;

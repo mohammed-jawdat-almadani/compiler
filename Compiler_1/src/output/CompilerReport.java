@@ -13,11 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Collects everything that goes into compiler_output/:
- * syntax errors (from ANTLR), semantic errors (from the analyzers), and the
- * generation log. Writes semantic_report.txt and generation_log.txt.
- */
+// Collects syntax errors, semantic errors, warnings and the log; writes the two report files
 public class CompilerReport {
 
     public static class Entry {
@@ -59,7 +55,7 @@ public class CompilerReport {
         warnings.add(new Entry("WARNING", file, message));
     }
 
-    /** ANTLR error listener that records syntax errors for one file. */
+    // ANTLR listener that records syntax errors for one file
     public BaseErrorListener listenerFor(String file) {
         return new BaseErrorListener() {
             @Override
@@ -69,8 +65,6 @@ public class CompilerReport {
             }
         };
     }
-
-    /* ------------------------------------------------------------------ */
 
     public void writeSemanticReport(Path path) throws IOException {
         StringBuilder sb = new StringBuilder();

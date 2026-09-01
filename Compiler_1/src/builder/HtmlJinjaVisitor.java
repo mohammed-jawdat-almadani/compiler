@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 
 public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
-    /** Original source text of a rule (whitespace preserved, unlike getText()). */
+    // original source text of a rule, whitespace kept (getText() drops it)
     private static String src(org.antlr.v4.runtime.ParserRuleContext ctx) {
         if (ctx == null || ctx.start == null) return "";
         int a = ctx.start.getStartIndex();
@@ -29,16 +29,16 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
         return ctx.start.getInputStream().getText(org.antlr.v4.runtime.misc.Interval.of(a, b)).trim();
     }
 
-    /* ---------------- Jinja expression helpers ---------------- */
+    // Jinja expression helpers
 
-    /** Builds a JinjaExpression node carrying both the source text and the expression AST. */
+    // JinjaExpression node carrying both the source text and the expression tree
     private JinjaExpression expressionNode(int line, int column, HtmlJinjaParser.ExpressionContext ctx) {
         JinjaExpression e = new JinjaExpression(line, column, src(ctx));
         e.tree = ctx == null ? null : (ExprNode) visit(ctx);
         return e;
     }
 
-    /** Parses the text of a {{ ... }} found inside an attribute value with the Jinja grammar. */
+    // parse a {{ ... }} found inside an attribute value
     private JinjaExpression parseExpressionText(int line, int column, String inner) {
         try {
             HtmlJinjaLexer lexer = new HtmlJinjaLexer(CharStreams.fromString("{{ " + inner + " }}"));
@@ -49,7 +49,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
             JinjaExpression e = new JinjaExpression(line, column, inner.trim());
             if (parser.getNumberOfSyntaxErrors() == 0 && ctx.expression() != null) {
                 e.tree = (ExprNode) visit(ctx.expression());
-                relocate(e.tree, line, column);   // positions of the re-parsed snippet -> position of the attribute in the template
+                relocate(e.tree, line, column);   // re-parsed snippet positions -> position of the attribute in the template
             }
             return e;
         } catch (RuntimeException ex) {
@@ -57,7 +57,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
         }
     }
 
-    /** Sets the line/column of every node of an expression tree to the given template position. */
+    // stamp every node of the tree with the given template position
     private static void relocate(Node n, int line, int column) {
         if (n == null) return;
         n.line = line;
@@ -73,7 +73,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
         }
     }
 
-    /** Splits "(a, b, key=value)" into positional and keyword argument nodes. */
+    // split "(a, b, key=value)" into positional and keyword args
     private void collectArguments(HtmlJinjaParser.ArgumentsContext ctx, List<ExprNode> args, Map<String, ExprNode> kwargs) {
         if (ctx == null) return;
         for (HtmlJinjaParser.ArgumentContext a : ctx.argument()) {
@@ -91,7 +91,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
         return s.replace("\\n", "\n").replace("\\t", "\t").replace("\\\"", "\"").replace("\\'", "'");
     }
 
-    /* ---------------- Jinja expression AST: one method per labelled alternative ---------------- */
+    // Jinja expression AST: one method per labelled alternative
 
     @Override public Node visitEqPar(HtmlJinjaParser.EqParContext ctx) { return visit(ctx.expression()); }
 
@@ -154,14 +154,14 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     @Override public Node visitPosArgument(HtmlJinjaParser.PosArgumentContext ctx) { return visit(ctx.expression()); }
     @Override public Node visitKwArgument(HtmlJinjaParser.KwArgumentContext ctx)   { return visit(ctx.expression()); }
 
-    /* ---------------- Top-level whitespace / comments ---------------- */
+    // Top-level whitespace / comments
     @Override
     public Node visitHtmlMisc(HtmlJinjaParser.HtmlMiscContext ctx) {
         if (ctx.SEA_WS() != null) return new HtmlChardata(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.SEA_WS().getText());
         return visitChildren(ctx);
     }
 
-    /* ---------------- Document type declaration ---------------- */
+    // Document type declaration
     @Override
     public Node visitTerminal(TerminalNode node) {
         if (node.getSymbol().getType() == HtmlJinjaLexer.DTD) {
@@ -170,7 +170,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
         return null;
     }
 
-    /* ---------------- HTML Document ---------------- */
+    // HTML Document
     @Override
     public Node visitHtmlDocument(HtmlJinjaParser.HtmlDocumentContext ctx) {
         List<Node> children = new ArrayList<>();
@@ -181,7 +181,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
         return new HtmlDocument(ctx.start.getLine(), ctx.start.getCharPositionInLine(), children);
     }
 
-    /* ---------------- HTML Element ---------------- */
+    // HTML Element
     @Override
     public Node visitHtmlElement(HtmlJinjaParser.HtmlElementContext ctx) {
         if (ctx.jinjaExpression() != null) {
@@ -211,7 +211,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
         return null;
     }
 
-    /* ---------------- HTML Content ---------------- */
+    // HTML Content
     @Override
     public Node visitHtmlContent(HtmlJinjaParser.HtmlContentContext ctx) {
         List<Node> nodes = new ArrayList<>();
@@ -247,7 +247,6 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
         String cssText = ctx.STYLE_BODY().getText()
                 .replaceFirst("</style>$", "")
                 .trim();
-
 
         try {
             CssVisitor cssVisitor = new CssVisitor();
@@ -335,7 +334,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
                     // the whole attribute value is one Jinja expression, e.g. href="{{ url_for('index') }}"
                     value = parseExpressionText(ctx.start.getLine(), ctx.start.getCharPositionInLine(), whole.group(1));
                 } else {
-                    // plain text, or text mixing literals and {{ }} (substituted inline by the renderer)
+                    // plain text, possibly mixing literals and {{ }} (substituted by the renderer)
                     value = new HtmlAttributeValue(
                             ctx.start.getLine(),
                             ctx.start.getCharPositionInLine(),
@@ -358,29 +357,29 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
     }
 
     private String extractInnerJinja(String value) {
-        // \\{\\{\\s*(.*?)\\s*}}  → يلتقط كل شيء داخل الأقواس
+        // capture everything between {{ and }}
         Matcher m = Pattern.compile("\\{\\{\\s*(.*?)\\s*}}").matcher(value);
 
         if (m.find()) {
-            return m.group(1).trim(); // group(1) هو المحتوى داخل {{ ... }}
+            return m.group(1).trim(); // group(1) is the content inside {{ }}
         }
         return null;
     }
 
-    /* ---------------- Extends Statement ---------------- */
+    // Extends Statement
 
     @Override
     public Node visitExtends_statement(HtmlJinjaParser.Extends_statementContext ctx) {
         return new ExtendsStatement(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.JINJA_STRING().getText());
     }
 
-    /* ---------------- Jinja Expressions ---------------- */
+    // Jinja Expressions
     @Override
     public Node visitJinjaExpression(HtmlJinjaParser.JinjaExpressionContext ctx) {
         return expressionNode(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.expression());
     }
 
-    /* ---------------- Jinja Statements ---------------- */
+    // Jinja Statements
     @Override
     public Node visitAssignment_statement(HtmlJinjaParser.Assignment_statementContext ctx) {
         AssignmentStatement a = new AssignmentStatement(
@@ -403,7 +402,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
             if (n != null) body.add(n);
         }
 
-        // The grammar nests each elif/else inside the previous elif; flatten the chain here.
+        // the grammar nests each elif/else inside the previous one; flatten the chain
         List<ElifStatement> elifs = new ArrayList<>();
         ElseStatement elseStmt = null;
         HtmlJinjaParser.Elif_statementContext elifCtx = ctx.elif_statement();
@@ -424,7 +423,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
     @Override
     public Node visitElif_statement(HtmlJinjaParser.Elif_statementContext ctx) {
-        // استخدم النص الكامل من elif_fragment
+        // full text of the elif fragment
         JinjaExpression condition = expressionNode(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.elif_fragment() != null ? ctx.elif_fragment().expression() : null);
 
         List<Node> body = new ArrayList<>();
@@ -448,7 +447,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
     @Override
     public Node visitWhile_statement(HtmlJinjaParser.While_statementContext ctx) {
-        // استخدم النص الكامل من while_fragment
+        // full text of the while fragment
         JinjaExpression condition = expressionNode(ctx.start.getLine(), ctx.start.getCharPositionInLine(), ctx.while_fragment() != null ? ctx.while_fragment().expression() : null);
 
         List<Node> body = new ArrayList<>();
@@ -462,7 +461,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
 
     @Override
     public Node visitFor_statement(HtmlJinjaParser.For_statementContext ctx) {
-        // جمع المتغيرات المستهدفة
+        // collect the loop targets
         List<String> targets = new ArrayList<>();
         for (TerminalNode id : ctx.for_fragment().for_target().JINJA_ID()) targets.add(id.getText());
 
@@ -484,7 +483,7 @@ public class HtmlJinjaVisitor extends HtmlJinjaParserBaseVisitor<Node> {
             name = ctx.block_open().JINJA_ID().getText();
         }
 
-        // Collect the inner template content
+        // collect the inner template content
         List<Node> body = new ArrayList<>();
         for (var contentCtx : ctx.templateContent()) {
             Node n = visit(contentCtx);

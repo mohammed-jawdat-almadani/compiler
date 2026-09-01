@@ -7,23 +7,18 @@ import java.util.function.Function;
 
 import static runtime.PythonContextEvaluator.*;
 
-/**
- * Evaluates Jinja expressions ({@code {{ product.name }}}, {@code {% if x > 3 and y %}}, ...)
- * against a variable scope.  Supports attribute/index access, calls with keyword
- * arguments, the usual arithmetic / comparison / boolean operators, string
- * concatenation with {@code ~}, filters ({@code |length}, {@code |upper}, ...) and
- * tests ({@code is defined}, {@code is none}, ...).
- */
+// Evaluates Jinja expressions against a scope: attributes, indexing, calls with kwargs,
+// arithmetic/comparison/boolean operators, ~ concatenation, filters and tests.
 public class JinjaExpressionEvaluator {
 
-    /** A value that must not be HTML-escaped (result of the |safe filter). */
+    // value that must not be HTML-escaped (|safe)
     public static final class SafeString {
         public final String value;
         public SafeString(String v) { value = v; }
         @Override public String toString() { return value; }
     }
 
-    /** Marker for an undefined variable (renders as empty string like Jinja's Undefined). */
+    // undefined variable marker, renders as "" like Jinja
     public static final Object UNDEFINED = new Object() { @Override public String toString() { return ""; } };
 
     private final Map<String, Function<List<Object>, Object>> functions = new HashMap<>();
@@ -40,14 +35,12 @@ public class JinjaExpressionEvaluator {
         functions.put("len", args -> (long) iterate(args.get(0)).size());
     }
 
-    /** Registers a global function such as url_for(...). Keyword args arrive as a trailing Map. */
+    // global function such as url_for; keyword args arrive as a trailing Map
     public void registerFunction(String name, Function<List<Object>, Object> fn) { functions.put(name, fn); }
 
-    /* ------------------------------------------------------------------ */
-    /*  Public API                                                         */
-    /* ------------------------------------------------------------------ */
+    // Public API
 
-    /** Evaluates an expression AST (built by HtmlJinjaVisitor from the parser's labelled alternatives). */
+    // evaluate an expression tree built by HtmlJinjaVisitor
     public Object evaluate(ExprNode node, Scope scope) {
         if (node == null) return UNDEFINED;
 
@@ -134,7 +127,7 @@ public class JinjaExpressionEvaluator {
 
     private static boolean truthyValue(Object v) { return v != UNDEFINED && truthy(v); }
 
-    /** Evaluates expression text (used for {{ }} embedded inside attribute text or script bodies). */
+    // evaluate expression text ({{ }} inside attribute text or script bodies)
     public Object evaluate(String expression, Scope scope) {
         List<Token> tokens = tokenize(expression);
         Parser p = new Parser(tokens, scope);
@@ -143,7 +136,7 @@ public class JinjaExpressionEvaluator {
         return v;
     }
 
-    /** Variable scope chain used during rendering. */
+    // scope chain used while rendering
     public static class Scope {
         private final Map<String, Object> vars = new LinkedHashMap<>();
         private final Scope parent;
@@ -158,9 +151,7 @@ public class JinjaExpressionEvaluator {
         public Set<String> names() { Set<String> s = new LinkedHashSet<>(); if (parent != null) s.addAll(parent.names()); s.addAll(vars.keySet()); return s; }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Tokenizer                                                          */
-    /* ------------------------------------------------------------------ */
+    // Tokenizer
 
     private enum T { NUM, STR, ID, OP, END }
 
@@ -206,9 +197,7 @@ public class JinjaExpressionEvaluator {
         return out;
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Recursive-descent parser that evaluates as it goes                  */
-    /* ------------------------------------------------------------------ */
+    // Recursive-descent parser that evaluates as it goes
 
     private class Parser {
         final List<Token> toks; final Scope scope; int pos = 0;
@@ -333,7 +322,7 @@ public class JinjaExpressionEvaluator {
             return v;
         }
 
-        /** Parses "(a, b, key=value)" -> positional args followed by one Map of keyword args. */
+        // "(a, b, key=value)" -> positional args then one Map of keyword args
         List<Object> parseArgs() {
             expect("(");
             List<Object> args = new ArrayList<>();
@@ -382,9 +371,7 @@ public class JinjaExpressionEvaluator {
         }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Attribute / method access on runtime values                         */
-    /* ------------------------------------------------------------------ */
+    // Attribute / method access on runtime values
 
     private static Object attribute(Object v, String name) {
         if (v == null || v == UNDEFINED) return UNDEFINED;
@@ -433,9 +420,7 @@ public class JinjaExpressionEvaluator {
         throw new RuntimeException("unknown method '" + name + "' on " + typeName(v));
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Filters and tests                                                  */
-    /* ------------------------------------------------------------------ */
+    // Filters and tests
 
     private static Object applyFilter(String name, Object v, List<Object> args) {
         Map<String, Object> kwargs = args.isEmpty() ? new LinkedHashMap<>() : (Map<String, Object>) args.remove(args.size() - 1);
@@ -496,11 +481,9 @@ public class JinjaExpressionEvaluator {
         }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Output helpers                                                     */
-    /* ------------------------------------------------------------------ */
+    // Output helpers
 
-    /** String form used for output (Jinja style: None -> "None", floats like Python). */
+    // output string form: None -> "None", floats like Python
     public static String str(Object v) {
         if (v == UNDEFINED) return "";
         if (v instanceof SafeString) return ((SafeString) v).value;

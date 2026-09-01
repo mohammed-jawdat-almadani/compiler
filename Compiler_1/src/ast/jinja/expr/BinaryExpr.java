@@ -1,6 +1,6 @@
 package ast.jinja.expr;
 
-/** eqMul / eqAdd / eqConcat / eqCompare / eqIn / eqAnd / eqOr: {@code left op right}. */
+// eqMul / eqAdd / eqConcat / eqCompare / eqIn / eqAnd / eqOr: left op right
 public class BinaryExpr extends ExprNode {
     public final String operator;
     public final ExprNode left;

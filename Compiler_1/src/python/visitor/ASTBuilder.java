@@ -6,10 +6,8 @@ import python.ast.*;
 import python.ast.DictNode;
 import symboltable.*;
 
-
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
 
@@ -22,8 +20,6 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
     public SymbolTable getSymbolTable() {
         return symbolTable;
     }
-
-
 
     @Override
     public ASTNode visitFile(PythonParser.FileContext ctx) {
@@ -42,8 +38,6 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
     @Override
     public ASTNode visitBlock(PythonParser.BlockContext ctx) {
         BlockNode block = new BlockNode(ctx.getStart().getLine());
-
-
 
         if (ctx.statements() != null) {
             for (PythonParser.StatementContext stmt : ctx.statements().statement()) {
@@ -75,8 +69,6 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
         return block.statements.size() == 1 ? block.statements.get(0) : block;
     }
 
-
-
     @Override
     public ASTNode visitFuncDefStmt(PythonParser.FuncDefStmtContext ctx) {
         List<DecoratorNode> decorators = new ArrayList<>();
@@ -88,7 +80,6 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
 
         PythonParser.Function_defContext funcCtx = ctx.function_def();
         String funcName = funcCtx.name().getText();
-
 
         Type returnType = new SymbolTable.BuiltInTypeSymbol("dynamic");
         FunctionSymbol functionSymbol = new FunctionSymbol(funcName, returnType, symbolTable.getCurrentScope());
@@ -126,8 +117,6 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
         PythonParser.Class_defContext classCtx = ctx.class_def();
         String className = classCtx.name().getText();
 
-
-
         symbolTable.define(new Symbol(className, new SymbolTable.BuiltInTypeSymbol("class")));
 
         LocalScope classScope = new LocalScope(symbolTable.getCurrentScope());
@@ -140,8 +129,6 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
         return new ClassDefNode(className, body, decorators, classCtx.getStart().getLine());
     }
 
-
-
     @Override
     public ASTNode visitAssignment(PythonParser.AssignmentContext ctx) {
         int line = ctx.getStart().getLine();
@@ -153,12 +140,10 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
 
             ASTNode targetNode = visit(ctx.targets(0));
 
-
             if (targetNode instanceof IdentifierNode) {
                 String varName = ((IdentifierNode) targetNode).name;
 
                 Symbol existingSymbol = symbolTable.resolve(varName);
-
 
                 if (existingSymbol == null || existingSymbol.scope != symbolTable.getCurrentScope()) {
                     VariableSymbol varSym = new VariableSymbol(varName, new SymbolTable.BuiltInTypeSymbol("dynamic"));
@@ -174,14 +159,11 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
             ASTNode value = ctx.expressions() != null ? visit(ctx.expressions()) : visit(ctx.yield_expr());
             String op = ctx.augassign().getText();
 
-
             return new AugmentedAssignNode(target, op, value, line);
         }
 
         return null;
     }
-
-
 
     @Override
     public ASTNode visitIfStmt(PythonParser.IfStmtContext ctx) { return visit(ctx.if_stmt()); }
@@ -317,7 +299,7 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
         DictNode dict = new DictNode(ctx.getStart().getLine());
         if (ctx.dict_set() != null) {
             PythonParser.Dict_setContext dictCtx = ctx.dict_set();
-            // Assuming it's a dict where expressions come in pairs: key, value, key, value
+            // dict: expressions come in key, value pairs
             for (int i = 0; i < dictCtx.expression().size() - 1; i += 2) {
                 ExpressionNode key = (ExpressionNode) visit(dictCtx.expression(i));
                 ExpressionNode val = (ExpressionNode) visit(dictCtx.expression(i+1));
@@ -515,7 +497,7 @@ public class ASTBuilder extends PythonParserBaseVisitor<ASTNode> {
         return null;
     }
 
-    /* ---------- remaining labelled alternatives of the grammar ---------- */
+    // remaining labelled alternatives
 
     @Override
     public ASTNode visitExprStmt(PythonParser.ExprStmtContext ctx) { return visit(ctx.expressions()); }

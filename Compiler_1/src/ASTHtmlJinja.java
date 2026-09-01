@@ -15,15 +15,15 @@ import java.util.Set;
 
 import static org.antlr.v4.runtime.CharStreams.fromFileName;
 
-/** Front end for HTML/Jinja templates: lexer -> parser -> AST -> semantic analysis. */
+// Front end for HTML/Jinja templates: lexer -> parser -> AST -> semantic analysis
 public class ASTHtmlJinja {
 
-    /** Backwards-compatible entry point. */
+    // old entry point
     public static Node parseFile(String path, SymbolTable globalSymTab) throws Exception {
         return parseFile(path, globalSymTab, new CompilerReport(), true);
     }
 
-    /** Parses the template only (no semantic check) so the context can be computed first. */
+    // parse only: the semantic check needs the context first
     public static Node parseOnly(String path, CompilerReport report, boolean printTree) throws IOException {
         String fileName = new java.io.File(path).getName();
         CharStream input = fromFileName(path);
@@ -45,7 +45,7 @@ public class ASTHtmlJinja {
         return ast;
     }
 
-    /** Runs the Jinja semantic analysis with the variables the Python side passes to this template. */
+    // Jinja semantic check with the variables Python passes to this template
     public static void analyze(Node ast, String fileName, SymbolTable globalSymTab, Set<String> contextVars, CompilerReport report) {
         if (ast == null) return;
         JinjaSemanticAnalyzer analyzer = new JinjaSemanticAnalyzer(globalSymTab, contextVars);

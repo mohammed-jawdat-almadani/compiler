@@ -13,25 +13,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 
-/**
- * Flask + Jinja translator.
- *
- * Input  (project folder):  app.py [+ other .py modules], templates/*.jinja, static/style.css, static/script.js
- * Output (output/):         one generated .html per rendered template + app.py, style.css, script.js copied as-is
- *         (compiler_output/): ast_python.json, ast_jinja.json, semantic_report.txt, generation_log.txt
- *
- * Pipeline:  Python -> parser -> AST -> semantic analysis -> evaluator (context data)
- *            Jinja  -> parser -> AST -> semantic analysis -> renderer (variables substituted) -> HTML
- *
- * Usage: java Main [projectDir] [outputRoot] [--verbose] [--force]
- *   projectDir  folder with app.py, templates/, static/           (default: ../PROJECT1)
- *   outputRoot  where output/ and compiler_output/ are created   (default: parent of projectDir)
- *   --verbose   print the ASTs and the symbol table to the console
- *   --force     generate HTML even if semantic errors were found
- */
+// Flask + Jinja translator: parse app.py and the templates, check them, evaluate the
+// Python to get each template's context, render the templates to static HTML.
+// Usage: java Main [projectDir] [outputRoot] [--verbose] [--force]
 public class Main {
 
-    /** Everything a caller (the test scripts, DevServer) may need after a compilation. */
+    // what DevServer and the test scripts need after a compile
     public static class CompileResult {
         public int exitCode;
         public CompilerReport report;
@@ -43,7 +30,7 @@ public class Main {
 
     public static void main(String[] args) {
         String projectArg = null, outputArg = null;
-        boolean verbose = false, force = false;
+        boolean verbose = true, force = false;
         for (String a : args) {
             if (a.equals("--verbose")) verbose = true;
             else if (a.equals("--force")) force = true;
@@ -77,7 +64,7 @@ public class Main {
         report.log("Output folder  : " + outputDir);
         report.log("Reports folder : " + compilerOutputDir);
 
-        /* ---------------- 1. Discover input files ---------------- */
+        // Discover input files
         Path appPy = project.resolve("app.py");
         if (!Files.exists(appPy)) {
             report.syntaxError("app.py", "not found in " + project);
@@ -107,11 +94,11 @@ public class Main {
         report.log("Templates      : " + names(templateFiles));
         report.log("CSS files      : " + names(cssFiles));
 
-        /* ---------------- 2. Python: parse + semantic analysis ---------------- */
+        // Python: parse + semantic analysis
         report.log("");
         report.log("=== Phase 1: Python (Flask) parsing and semantic analysis ===");
         Map<String, ASTNode> pythonAsts = new LinkedHashMap<>();
-        // parse app.py last so that imported modules (data.py) are already in the symbol table
+        // app.py last, so data.py is already in the symbol table
         List<Path> ordered = new ArrayList<>(pythonFiles);
         ordered.remove(appPy); ordered.add(appPy);
         for (Path p : ordered) {
@@ -121,7 +108,7 @@ public class Main {
             report.log("parsed " + p.getFileName() + (ast != null ? "" : " (failed)"));
         }
 
-        /* ---------------- 3. Jinja: parse ---------------- */
+        // Jinja: parse
         report.log("");
         report.log("=== Phase 2: Jinja template parsing ===");
         Map<String, Node> templateAsts = new LinkedHashMap<>();
@@ -136,7 +123,7 @@ public class Main {
             }
         }
 
-        /* ---------------- 4. CSS: parse ---------------- */
+        // CSS: parse
         for (Path c : cssFiles) {
             try {
                 ASTCss.parseFile(c.toString(), globalSymTab, report, verbose);
@@ -146,7 +133,7 @@ public class Main {
             }
         }
 
-        /* ---------------- 5. Evaluate Python -> context data ---------------- */
+        // Evaluate Python -> context data
         report.log("");
         report.log("=== Phase 3: Evaluating Python data and render_template() calls ===");
         List<String> evalLog = new ArrayList<>();
@@ -167,14 +154,14 @@ public class Main {
             allVars.addAll(rc.context.keySet());
         }
 
-        /* ---------------- 6. Jinja: semantic analysis with the real context ---------------- */
+        // Jinja: semantic analysis with the real context
         report.log("");
         report.log("=== Phase 4: Jinja semantic analysis ===");
         for (Map.Entry<String, Node> e : templateAsts.entrySet()) {
             String name = e.getKey();
             Set<String> vars = contextVars.get(name);
             if (vars == null) {
-                // base/partial templates are never rendered directly: check them against everything any page receives
+                // layouts/partials are never rendered directly: check them against everything any page gets
                 vars = allVars;
                 report.log("  " + name + " is not rendered directly (layout/partial); checked against " + vars);
             } else {
@@ -187,7 +174,7 @@ public class Main {
         }
         if (verbose) globalSymTab.printSymbolTable();
 
-        /* ---------------- 7. Analysis outputs ---------------- */
+        // Analysis outputs
         writeJson(compilerOutputDir.resolve("ast_python.json"), pythonAsts, report);
         writeJson(compilerOutputDir.resolve("ast_jinja.json"), templateAsts, report);
 
@@ -203,14 +190,14 @@ public class Main {
         }
         if (!report.getSemanticErrors().isEmpty()) report.log("--force: generating despite semantic errors");
 
-        /* ---------------- 8. Generation: render templates with the context data ---------------- */
+        // Generation: render templates with the context data
         report.log("");
         report.log("=== Phase 5: Code generation (Jinja AST + context data -> HTML) ===");
         List<String> renderLog = new ArrayList<>();
         JinjaRenderer renderer = new JinjaRenderer(templateAsts, renderLog);
 
-        // url_for(endpoint, **values): static files are copied next to the pages; pages link to the generated html.
-        // A route with a parameter has one page per value: edit_product_1.html, edit_product_2.html, ...
+        // url_for: static files sit next to the pages, routes map to the generated html
+        // (one page per parameter value: edit_product_1.html, edit_product_2.html, ...)
         Map<String, String> endpointToTemplate = new LinkedHashMap<>();
         for (RenderCall rc : evaluator.getRenderCalls()) endpointToTemplate.putIfAbsent(rc.endpoint, rc.template);
         for (Map.Entry<String, String> e : endpointToTemplate.entrySet()) result.endpointToPage.put(e.getKey(), htmlName(e.getValue()));
@@ -240,7 +227,7 @@ public class Main {
                 for (String l : renderLog) report.log(l);
                 report.log("  wrote " + outName + " (" + html.length() + " chars)");
                 generated++;
-                // the spec names the page after the template (edit_product.html): keep that name for the first value
+                // keep the spec's name (edit_product.html) for the first value
                 String plain = htmlName(rc.template);
                 if (!plain.equals(outName) && unsuffixedWritten.add(plain)) {
                     Files.write(outputDir.resolve(plain), html.getBytes(StandardCharsets.UTF_8));
@@ -254,7 +241,7 @@ public class Main {
         }
         for (String w : renderer.getWarnings()) report.warning("generation", w);
 
-        /* ---------------- 9. Copy the supporting files untouched ---------------- */
+        // Copy the supporting files untouched
         report.log("");
         report.log("=== Phase 6: Copying supporting files (not processed) ===");
         for (Path p : pythonFiles) copy(p, outputDir.resolve(p.getFileName().toString()), report);
@@ -271,14 +258,12 @@ public class Main {
         return result;
     }
 
-    /** index.jinja -> index.html ; edit_product.jinja + {product_id=2} -> edit_product_2.html */
+    // index.jinja -> index.html, edit_product.jinja + {product_id=2} -> edit_product_2.html
     static String pageName(String template, Map<String, Object> params) {
         StringBuilder sb = new StringBuilder(stripExt(template));
         if (params != null) for (Object v : params.values()) if (v != null) sb.append('_').append(String.valueOf(v).replaceAll("[^A-Za-z0-9_-]", "_"));
         return sb + ".html";
     }
-
-    /* ------------------------------------------------------------------ */
 
     private static void finish(CompilerReport report, Path compilerOutputDir) throws IOException {
         report.writeSemanticReport(compilerOutputDir.resolve("semantic_report.txt"));

@@ -4,11 +4,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
-/**
- * Serializes any AST (the Python {@code ASTNode} tree or the HTML/Jinja/CSS {@code Node}
- * tree) to JSON using reflection, so every node type is covered automatically.
- * Each node becomes {"type": "<ClassName>", "line": n, ...fields...}.
- */
+// Reflection-based JSON dump of any AST, so every node type is covered.
+// Each node becomes {"type": "<ClassName>", "line": n, ...fields}
 public class AstJsonSerializer {
 
     private final IdentityHashMap<Object, Boolean> visiting = new IdentityHashMap<>();
@@ -47,7 +44,7 @@ public class AstJsonSerializer {
             if (m.isEmpty()) { sb.append("{}"); return; }
             boolean nodeKeys = false;
             for (Object k : m.keySet()) if (k != null && !(k instanceof String) && !(k instanceof Number) && !(k instanceof Enum)) { nodeKeys = true; break; }
-            if (nodeKeys) { // e.g. DictNode.entries: Map<ASTNode, ASTNode> -> [{"key":..,"value":..}]
+            if (nodeKeys) { // DictNode.entries has node keys -> [{"key":..,"value":..}]
                 sb.append("[");
                 boolean first = true;
                 for (Map.Entry<?, ?> e : m.entrySet()) {
@@ -79,7 +76,7 @@ public class AstJsonSerializer {
             return;
         }
 
-        // AST node (or any other object): reflect over its fields
+        // AST node: reflect over its fields
         if (visiting.containsKey(v)) { sb.append("\"<cycle>\""); return; }
         visiting.put(v, Boolean.TRUE);
         sb.append("{");
@@ -103,7 +100,7 @@ public class AstJsonSerializer {
 
     private static String jsonName(String field) {
         if (field.equals("lineNumber")) return "line";
-        if (field.equals("type")) return "valueType";   // "type" is reserved for the node label (e.g. LiteralNode.type -> valueType)
+        if (field.equals("type")) return "valueType";   // "type" is the node label, so LiteralNode.type becomes valueType
         return field;
     }
 
@@ -114,7 +111,7 @@ public class AstJsonSerializer {
         for (Class<?> k : chain) {
             for (Field f : k.getDeclaredFields()) {
                 if (Modifier.isStatic(f.getModifiers()) || f.isSynthetic()) continue;
-                if (f.getName().equals("nodeName")) continue; // duplicate of "type"
+                if (f.getName().equals("nodeName")) continue; // same as "type"
                 out.add(f);
             }
         }

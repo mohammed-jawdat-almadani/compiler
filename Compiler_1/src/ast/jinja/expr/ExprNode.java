@@ -3,12 +3,8 @@ package ast.jinja.expr;
 import ast.Node;
 import ast.NodeVisitor;
 
-/**
- * Base class of the Jinja expression AST. One subclass per labelled alternative of the
- * {@code expression} rule in HtmlJinjaParser.g4 (eqAdd, eqCall, eqFilter, ...).
- * Expression nodes are leaves for the statement-level visitors, so they accept through
- * {@link NodeVisitor#visitGeneric(Node)}.
- */
+// Base of the Jinja expression AST, one subclass per labelled alternative of the expression rule.
+// Statement-level visitors treat these as leaves (visitGeneric).
 public abstract class ExprNode extends Node {
     public ExprNode(int line, int column) { super(line, column); }
 

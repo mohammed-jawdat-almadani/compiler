@@ -1,6 +1,6 @@
 package ast.jinja.expr;
 
-/** eqIs: {@code value is [not] test} — e.g. loop.index is odd, x is not defined. */
+// eqIs: value is [not] test — e.g. loop.index is odd, x is not defined
 public class TestExpr extends ExprNode {
     public final ExprNode value;
     public final String test;

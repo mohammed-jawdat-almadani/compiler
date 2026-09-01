@@ -1,6 +1,6 @@
 package ast.jinja.expr;
 
-/** eqIndex: {@code object[index]}. */
+// eqIndex: object[index]
 public class IndexExpr extends ExprNode {
     public final ExprNode object;
     public final ExprNode index;

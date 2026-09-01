@@ -3,7 +3,7 @@ package ast.jinja.expr;
 import java.util.List;
 import java.util.Map;
 
-/** eqFilter: {@code value|filter(args)} — e.g. products|length, price|round(2). */
+// eqFilter: value|filter(args) — e.g. products|length, price|round(2)
 public class FilterExpr extends ExprNode {
     public final ExprNode value;
     public final String filter;
